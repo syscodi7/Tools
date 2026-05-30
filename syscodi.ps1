@@ -4,7 +4,7 @@ Add-Type -AssemblyName System.Drawing
 # ============================================================
 #   LOGO - Cambia esta ruta por la de tu PNG
 # ============================================================
-$logoPath = "C:\ruta\a\tu\logo.png"   # <-- CAMBIA AQUI
+$logoPath = "https://raw.githubusercontent.com/syscodi7/Tools/main/sis.png"   # <-- CAMBIA AQUI
 
 # ============================================================
 #   COLORES CORPORATIVOS
