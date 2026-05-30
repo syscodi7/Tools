@@ -2,9 +2,15 @@ Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
 # ============================================================
-#   LOGO - Cambia esta ruta por la de tu PNG
+#   LOGO - Descarga desde GitHub
 # ============================================================
-$logoPath = "https://raw.githubusercontent.com/syscodi7/Tools/main/sis.png"   # <-- CAMBIA AQUI
+$logoUrl = "https://raw.githubusercontent.com/syscodi7/Tools/main/sis.png"
+$logoPath = "$env:TEMP\syscodi_logo.png"
+try {
+    Invoke-WebRequest -Uri $logoUrl -OutFile $logoPath -ErrorAction Stop
+} catch {
+    $logoPath = ""
+}
 
 # ============================================================
 #   COLORES CORPORATIVOS
@@ -25,7 +31,7 @@ $cBorder   = [Drawing.Color]::FromArgb(0, 120, 215)
 #   FORMULARIO PRINCIPAL
 # ============================================================
 $form = New-Object Windows.Forms.Form
-$form.Text = "SYSCODI7 WinTool Pro"
+$form.Text = "SysCodi WinTool Pro"
 $form.Size = New-Object Drawing.Size(1200, 650)
 $form.StartPosition = "CenterScreen"
 $form.BackColor = $cBg
@@ -64,7 +70,7 @@ if (Test-Path $logoPath) {
 }
 
 $lblTitle = New-Object Windows.Forms.Label
-$lblTitle.Text = "SYSCODI7 WinTool Pro"
+$lblTitle.Text = "SysCodi WinTool Pro"
 $lblTitle.Font = New-Object Drawing.Font("Segoe UI", 14, [Drawing.FontStyle]::Bold)
 $lblTitle.ForeColor = $cAccent2
 $lblTitle.Location = New-Object Drawing.Point($titleX, 10)
@@ -102,6 +108,7 @@ function New-Tab($titulo) {
 $tabRepair  = New-Tab " Reparacin"
 $tabApps    = New-Tab " Aplicaciones"
 $tabTweaks  = New-Tab " Tweaks"
+$tabUtils   = New-Tab "  Utilidades"
 $tabInfo    = New-Tab "  Sistema"
 
 # ============================================================
@@ -402,8 +409,214 @@ $btnApplyTweaks.Add_Click({
 })
 $tabTweaks.Controls.Add($btnApplyTweaks)
 
+
 # ============================================================
-#   TAB 4: INFO DEL SISTEMA
+#   TAB UTILIDADES - Quitar contrasenas
+# ============================================================
+
+function Install-MsOffCrypto {
+    $check = python -c "import msoffcrypto" 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        Write-Out "Instalando msoffcrypto-tool..." $cSubText
+        python -m pip install msoffcrypto-tool | Out-Null
+    }
+}
+
+function New-UtilPanel($titulo, $subtitulo, $parent, $y, $h=120) {
+    $pnl = New-Object Windows.Forms.Panel
+    $pnl.Location = New-Object Drawing.Point(8, $y)
+    $pnl.Size = New-Object Drawing.Size(690, $h)
+    $pnl.BackColor = [Drawing.Color]::FromArgb(22, 38, 75)
+    $parent.Controls.Add($pnl)
+    $lbl = New-Object Windows.Forms.Label
+    $lbl.Text = $titulo
+    $lbl.Location = New-Object Drawing.Point(10, 8)
+    $lbl.Size = New-Object Drawing.Size(670, 22)
+    $lbl.ForeColor = [Drawing.Color]::FromArgb(0, 180, 255)
+    $lbl.Font = New-Object Drawing.Font("Segoe UI", 10, [Drawing.FontStyle]::Bold)
+    $pnl.Controls.Add($lbl)
+    $lblSub = New-Object Windows.Forms.Label
+    $lblSub.Text = $subtitulo
+    $lblSub.Location = New-Object Drawing.Point(10, 32)
+    $lblSub.Size = New-Object Drawing.Size(670, 18)
+    $lblSub.ForeColor = [Drawing.Color]::FromArgb(160, 200, 255)
+    $lblSub.Font = New-Object Drawing.Font("Segoe UI", 8)
+    $pnl.Controls.Add($lblSub)
+    return $pnl
+}
+
+# ── EXCEL ─────────────────────────────────────────────────
+$pnlExcel = New-UtilPanel "Quitar contrasena - Excel (.xlsx / .xls)" "Se creara una copia sin contrasena en la misma carpeta." $tabUtils 10
+
+$lblExcelPath = New-Object Windows.Forms.Label
+$lblExcelPath.Text = "Ningun archivo seleccionado"
+$lblExcelPath.Location = New-Object Drawing.Point(10, 55)
+$lblExcelPath.Size = New-Object Drawing.Size(670, 16)
+$lblExcelPath.ForeColor = [Drawing.Color]::White
+$lblExcelPath.Font = New-Object Drawing.Font("Consolas", 7)
+$pnlExcel.Controls.Add($lblExcelPath)
+
+$btnBrowseExcel = New-CorporateButton "Buscar Excel" 10 75 150 32
+$btnBrowseExcel.Add_Click({
+    $dlg = New-Object Windows.Forms.OpenFileDialog
+    $dlg.Filter = "Excel files (*.xlsx;*.xls;*.xlsm)|*.xlsx;*.xls;*.xlsm"
+    if ($dlg.ShowDialog() -eq "OK") { $lblExcelPath.Text = $dlg.FileName }
+})
+$pnlExcel.Controls.Add($btnBrowseExcel)
+
+$btnRemoveExcel = New-CorporateButton "Quitar Contrasena" 170 75 180 32
+$btnRemoveExcel.Add_Click({
+    $path = $lblExcelPath.Text
+    if (-not (Test-Path $path)) { Write-Out "Selecciona un archivo Excel primero." ([Drawing.Color]::Yellow); return }
+    Install-MsOffCrypto
+    $out = $path -replace '(\.[^.]+)$','_sin_pass$1'
+    $py = "import msoffcrypto`nwith open(r'$path','rb') as f:`n    o=msoffcrypto.OfficeFile(f)`n    o.load_key(password='')`n    open(r'$out','wb').write(b'')`n    with open(r'$out','wb') as fw: o.decrypt(fw)`nprint('OK')"
+    $tmp = "$env:TEMP\unlock_excel.py"
+    $py | Set-Content $tmp -Encoding UTF8
+    $res = python $tmp 2>&1
+    if ($res -like "*OK*") { Write-Out "Excel desbloqueado: $out" ([Drawing.Color]::LightGreen) }
+    else { Write-Out "Error: $res" ([Drawing.Color]::Salmon) }
+})
+$pnlExcel.Controls.Add($btnRemoveExcel)
+
+# ── WORD ──────────────────────────────────────────────────
+$pnlWord = New-UtilPanel "Quitar contrasena - Word (.docx / .doc)" "Se creara una copia sin contrasena en la misma carpeta." $tabUtils 140
+
+$lblWordPath = New-Object Windows.Forms.Label
+$lblWordPath.Text = "Ningun archivo seleccionado"
+$lblWordPath.Location = New-Object Drawing.Point(10, 55)
+$lblWordPath.Size = New-Object Drawing.Size(670, 16)
+$lblWordPath.ForeColor = [Drawing.Color]::White
+$lblWordPath.Font = New-Object Drawing.Font("Consolas", 7)
+$pnlWord.Controls.Add($lblWordPath)
+
+$btnBrowseWord = New-CorporateButton "Buscar Word" 10 75 150 32
+$btnBrowseWord.Add_Click({
+    $dlg = New-Object Windows.Forms.OpenFileDialog
+    $dlg.Filter = "Word files (*.docx;*.doc;*.docm)|*.docx;*.doc;*.docm"
+    if ($dlg.ShowDialog() -eq "OK") { $lblWordPath.Text = $dlg.FileName }
+})
+$pnlWord.Controls.Add($btnBrowseWord)
+
+$btnRemoveWord = New-CorporateButton "Quitar Contrasena" 170 75 180 32
+$btnRemoveWord.Add_Click({
+    $path = $lblWordPath.Text
+    if (-not (Test-Path $path)) { Write-Out "Selecciona un archivo Word primero." ([Drawing.Color]::Yellow); return }
+    Install-MsOffCrypto
+    $out = $path -replace '(\.[^.]+)$','_sin_pass$1'
+    $py = "import msoffcrypto`nwith open(r'$path','rb') as f:`n    o=msoffcrypto.OfficeFile(f)`n    o.load_key(password='')`n    with open(r'$out','wb') as fw: o.decrypt(fw)`nprint('OK')"
+    $tmp = "$env:TEMP\unlock_word.py"
+    $py | Set-Content $tmp -Encoding UTF8
+    $res = python $tmp 2>&1
+    if ($res -like "*OK*") { Write-Out "Word desbloqueado: $out" ([Drawing.Color]::LightGreen) }
+    else { Write-Out "Error: $res" ([Drawing.Color]::Salmon) }
+})
+$pnlWord.Controls.Add($btnRemoveWord)
+
+# ── ZIP ───────────────────────────────────────────────────
+$pnlZip = New-UtilPanel "Quitar contrasena - ZIP" "Ingresa la contrasena si la recuerdas, o usa fuerza bruta con un wordlist (.txt)." $tabUtils 270 160
+
+$lblZipPath = New-Object Windows.Forms.Label
+$lblZipPath.Text = "Ningun archivo seleccionado"
+$lblZipPath.Location = New-Object Drawing.Point(10, 55)
+$lblZipPath.Size = New-Object Drawing.Size(400, 16)
+$lblZipPath.ForeColor = [Drawing.Color]::White
+$lblZipPath.Font = New-Object Drawing.Font("Consolas", 7)
+$pnlZip.Controls.Add($lblZipPath)
+
+$lblWlPath = New-Object Windows.Forms.Label
+$lblWlPath.Text = "Sin wordlist"
+$lblWlPath.Location = New-Object Drawing.Point(420, 55)
+$lblWlPath.Size = New-Object Drawing.Size(260, 16)
+$lblWlPath.ForeColor = [Drawing.Color]::FromArgb(160, 200, 255)
+$lblWlPath.Font = New-Object Drawing.Font("Consolas", 7)
+$pnlZip.Controls.Add($lblWlPath)
+
+$lblPassLbl = New-Object Windows.Forms.Label
+$lblPassLbl.Text = "Contrasena:"
+$lblPassLbl.Location = New-Object Drawing.Point(10, 76)
+$lblPassLbl.Size = New-Object Drawing.Size(85, 20)
+$lblPassLbl.ForeColor = [Drawing.Color]::White
+$lblPassLbl.Font = New-Object Drawing.Font("Segoe UI", 8)
+$pnlZip.Controls.Add($lblPassLbl)
+
+$txtZipPass = New-Object Windows.Forms.TextBox
+$txtZipPass.Location = New-Object Drawing.Point(98, 74)
+$txtZipPass.Size = New-Object Drawing.Size(170, 22)
+$txtZipPass.UseSystemPasswordChar = $true
+$txtZipPass.BackColor = [Drawing.Color]::FromArgb(10,18,40)
+$txtZipPass.ForeColor = [Drawing.Color]::White
+$pnlZip.Controls.Add($txtZipPass)
+
+$btnBrowseZip = New-CorporateButton "Buscar ZIP" 10 110 130 28
+$btnBrowseZip.Add_Click({
+    $dlg = New-Object Windows.Forms.OpenFileDialog
+    $dlg.Filter = "ZIP files (*.zip)|*.zip"
+    if ($dlg.ShowDialog() -eq "OK") { $lblZipPath.Text = $dlg.FileName }
+})
+$pnlZip.Controls.Add($btnBrowseZip)
+
+$btnBrowseWl = New-CorporateButton "Wordlist" 150 110 120 28
+$btnBrowseWl.Add_Click({
+    $dlg = New-Object Windows.Forms.OpenFileDialog
+    $dlg.Filter = "Text files (*.txt)|*.txt"
+    if ($dlg.ShowDialog() -eq "OK") { $lblWlPath.Text = $dlg.FileName }
+})
+$pnlZip.Controls.Add($btnBrowseWl)
+
+$btnUnzipPass = New-CorporateButton "Extraer / Quitar Contrasena" 280 110 220 28
+$btnUnzipPass.Add_Click({
+    $zipPath = $lblZipPath.Text
+    $pass    = $txtZipPass.Text.Trim()
+    $wl      = $lblWlPath.Text
+    if (-not (Test-Path $zipPath)) { Write-Out "Selecciona un archivo ZIP primero." ([Drawing.Color]::Yellow); return }
+    $outDir  = [System.IO.Path]::Combine([System.IO.Path]::GetDirectoryName($zipPath), [System.IO.Path]::GetFileNameWithoutExtension($zipPath) + "_extraido")
+    $pyScript = @"
+import zipfile, os, sys
+path  = r'ZIPPATH'
+out   = r'OUTDIR'
+pwd   = 'ZIPPASS'
+wl    = r'WLPATH'
+os.makedirs(out, exist_ok=True)
+if pwd:
+    try:
+        with zipfile.ZipFile(path) as z: z.extractall(out, pwd=pwd.encode())
+        print('OK:Extraido con contrasena en: ' + out); sys.exit()
+    except Exception as e: print('ERROR:' + str(e)); sys.exit()
+try:
+    with zipfile.ZipFile(path) as z: z.extractall(out)
+    print('OK:Extraido sin contrasena en: ' + out); sys.exit()
+except RuntimeError: pass
+if os.path.exists(wl):
+    print('INFO:Fuerza bruta iniciada...')
+    with open(wl,'r',errors='ignore') as f:
+        for i,line in enumerate(f):
+            p = line.strip()
+            try:
+                with zipfile.ZipFile(path) as z: z.extractall(out, pwd=p.encode())
+                print('OK:Contrasena: ' + p + ' | Extraido en: ' + out); sys.exit()
+            except: pass
+            if i % 500 == 0: print('INFO:Probadas ' + str(i) + ' contrasenas...')
+    print('ERROR:No se encontro la contrasena.')
+else:
+    print('ERROR:ZIP protegido. Ingresa contrasena o selecciona wordlist.')
+"@
+    $pyScript = $pyScript.Replace('ZIPPATH',$zipPath).Replace('OUTDIR',$outDir).Replace('ZIPPASS',$pass).Replace('WLPATH',$wl)
+    $tmp = "$env:TEMP\unlock_zip.py"
+    $pyScript | Set-Content $tmp -Encoding UTF8
+    Write-Out "Procesando ZIP..." $cSubText
+    $res = python $tmp 2>&1
+    foreach ($line in $res) {
+        if     ($line -like "OK:*")   { Write-Out $line.Replace("OK:","") ([Drawing.Color]::LightGreen) }
+        elseif ($line -like "ERROR:*"){ Write-Out $line.Replace("ERROR:","") ([Drawing.Color]::Salmon) }
+        else                          { Write-Out $line $cSubText }
+    }
+})
+$pnlZip.Controls.Add($btnUnzipPass)
+
+
+# ============================================================
+#   TAB 5: INFO DEL SISTEMA
 # ============================================================
 $infoBox = New-Object Windows.Forms.RichTextBox
 $infoBox.Location = New-Object Drawing.Point(5, 5)
@@ -453,7 +666,7 @@ $tabInfo.Controls.Add($btnUpdates)
 #   FOOTER
 # ============================================================
 $footer = New-Object Windows.Forms.Label
-$footer.Text = "SYSCODI7 WinTool Pro  |  Usa WinGet como gestor de paquetes  |  Ejecutar siempre como Administrador"
+$footer.Text = "SysCodi WinTool Pro  |  Usa WinGet como gestor de paquetes  |  Ejecutar siempre como Administrador"
 $footer.Location = New-Object Drawing.Point(0, 620)
 $footer.Size = New-Object Drawing.Size(1200, 20)
 $footer.TextAlign = "MiddleCenter"
@@ -463,4 +676,3 @@ $form.Controls.Add($footer)
 
 # ============================================================
 $form.ShowDialog()
-
