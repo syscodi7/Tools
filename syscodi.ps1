@@ -25,7 +25,7 @@ $cBorder   = [Drawing.Color]::FromArgb(0, 120, 215)
 #   FORMULARIO PRINCIPAL
 # ============================================================
 $form = New-Object Windows.Forms.Form
-$form.Text = "SysCodi WinTool Pro"
+$form.Text = "SysCodi7 WinTool Pro"
 $form.Size = New-Object Drawing.Size(900, 750)
 $form.StartPosition = "CenterScreen"
 $form.BackColor = $cBg
@@ -63,7 +63,7 @@ if (Test-Path $logoPath) {
 }
 
 $lblTitle = New-Object Windows.Forms.Label
-$lblTitle.Text = "SysCodi WinTool Pro"
+$lblTitle.Text = "SysCodi7 WinTool Pro"
 $lblTitle.Font = New-Object Drawing.Font("Segoe UI", 14, [Drawing.FontStyle]::Bold)
 $lblTitle.ForeColor = $cAccent2
 $lblTitle.Location = New-Object Drawing.Point($titleX, 10)
@@ -433,7 +433,7 @@ $tabInfo.Controls.Add($btnUpdates)
 #   FOOTER
 # ============================================================
 $footer = New-Object Windows.Forms.Label
-$footer.Text = "SysCodi WinTool Pro  |  Usa WinGet como gestor de paquetes  |  Ejecutar siempre como Administrador"
+$footer.Text = "SysCodi7 WinTool Pro  |  Usa WinGet como gestor de paquetes  |  Ejecutar siempre como Administrador"
 $footer.Location = New-Object Drawing.Point(0, 685)
 $footer.Size = New-Object Drawing.Size(900, 20)
 $footer.TextAlign = "MiddleCenter"
