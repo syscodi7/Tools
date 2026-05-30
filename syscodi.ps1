@@ -2,6 +2,11 @@ Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
 # ============================================================
+#   LOGO - Cambia esta ruta por la de tu PNG
+# ============================================================
+$logoPath = "C:\ruta\a\tu\logo.png"   # <-- CAMBIA AQUI
+
+# ============================================================
 #   COLORES CORPORATIVOS
 # ============================================================
 $cBg       = [Drawing.Color]::FromArgb(15, 25, 50)       # fondo principal
@@ -33,16 +38,35 @@ $form.MaximizeBox = $false
 #   HEADER
 # ============================================================
 $header = New-Object Windows.Forms.Panel
-$header.Size = New-Object Drawing.Size(900, 55)
+$header.Size = New-Object Drawing.Size(900, 60)
 $header.Location = New-Object Drawing.Point(0, 0)
 $header.BackColor = $cPanel
 $form.Controls.Add($header)
 
+# Logo PNG en el header
+if (Test-Path $logoPath) {
+    $logoPic = New-Object Windows.Forms.PictureBox
+    $logoPic.Location = New-Object Drawing.Point(10, 5)
+    $logoPic.Size = New-Object Drawing.Size(50, 50)
+    $logoPic.SizeMode = "Zoom"
+    $logoPic.BackColor = $cPanel
+    $logoPic.Image = [Drawing.Image]::FromFile($logoPath)
+    $header.Controls.Add($logoPic)
+    try {
+        $bmp = [Drawing.Bitmap][Drawing.Image]::FromFile($logoPath)
+        $icon = [Drawing.Icon]::FromHandle($bmp.GetHicon())
+        $form.Icon = $icon
+    } catch {}
+    $titleX = 70
+} else {
+    $titleX = 15
+}
+
 $lblTitle = New-Object Windows.Forms.Label
-$lblTitle.Text = "⚙  SysCodi WinTool Pro"
+$lblTitle.Text = "SysCodi WinTool Pro"
 $lblTitle.Font = New-Object Drawing.Font("Segoe UI", 14, [Drawing.FontStyle]::Bold)
 $lblTitle.ForeColor = $cAccent2
-$lblTitle.Location = New-Object Drawing.Point(15, 12)
+$lblTitle.Location = New-Object Drawing.Point($titleX, 10)
 $lblTitle.Size = New-Object Drawing.Size(400, 30)
 $header.Controls.Add($lblTitle)
 
@@ -50,15 +74,15 @@ $lblSub = New-Object Windows.Forms.Label
 $lblSub.Text = "Utilidad de sistema avanzada para Windows"
 $lblSub.Font = New-Object Drawing.Font("Segoe UI", 8)
 $lblSub.ForeColor = $cSubText
-$lblSub.Location = New-Object Drawing.Point(17, 35)
+$lblSub.Location = New-Object Drawing.Point($titleX, 38)
 $lblSub.Size = New-Object Drawing.Size(400, 16)
 $header.Controls.Add($lblSub)
 
 # ============================================================
-#   TAB CONTROL (PESTAÑAS)
+#   TAB CONTROL (PESTAAS)
 # ============================================================
 $tabs = New-Object Windows.Forms.TabControl
-$tabs.Location = New-Object Drawing.Point(5, 60)
+$tabs.Location = New-Object Drawing.Point(5, 65)
 $tabs.Size = New-Object Drawing.Size(885, 460)
 $tabs.BackColor = $cBg
 $tabs.Appearance = "FlatButtons"
@@ -74,30 +98,30 @@ function New-Tab($titulo) {
     return $t
 }
 
-$tabRepair  = New-Tab "🔧 Reparación"
-$tabApps    = New-Tab "📦 Aplicaciones"
-$tabTweaks  = New-Tab "⚡ Tweaks"
-$tabInfo    = New-Tab "ℹ️  Sistema"
+$tabRepair  = New-Tab " Reparacin"
+$tabApps    = New-Tab " Aplicaciones"
+$tabTweaks  = New-Tab " Tweaks"
+$tabInfo    = New-Tab "  Sistema"
 
 # ============================================================
 #   OUTPUT COMPARTIDO (parte baja)
 # ============================================================
 $outputBox = New-Object Windows.Forms.RichTextBox
-$outputBox.Location = New-Object Drawing.Point(5, 525)
+$outputBox.Location = New-Object Drawing.Point(5, 530)
 $outputBox.Size = New-Object Drawing.Size(885, 50)
 $outputBox.BackColor = $cOutput
 $outputBox.ForeColor = $cAccent2
 $outputBox.Font = New-Object Drawing.Font("Consolas", 8)
 $outputBox.ReadOnly = $true
 $outputBox.BorderStyle = "None"
-$outputBox.Text = "▶  Listo. Selecciona una opción y ejecuta."
+$outputBox.Text = "  Listo. Selecciona una opcin y ejecuta."
 $form.Controls.Add($outputBox)
 
 function Write-Out($msg, $color = $null) {
     $outputBox.SelectionStart = $outputBox.TextLength
     if ($color) { $outputBox.SelectionColor = $color }
     else { $outputBox.SelectionColor = $cAccent2 }
-    $outputBox.AppendText("`r`n▶ $msg")
+    $outputBox.AppendText("`r`n $msg")
     $outputBox.ScrollToCaret()
 }
 
@@ -112,7 +136,7 @@ function Run-Cmd($cmd) {
 }
 
 # ============================================================
-#   HELPER: crear botón estilo corporativo
+#   HELPER: crear botn estilo corporativo
 # ============================================================
 function New-CorporateButton($texto, $x, $y, $w = 200, $h = 36) {
     $b = New-Object Windows.Forms.Button
@@ -140,64 +164,64 @@ function New-SectionLabel($texto, $x, $y, $parent) {
 }
 
 # ============================================================
-#   TAB 1: REPARACIÓN
+#   TAB 1: REPARACIN
 # ============================================================
-New-SectionLabel "── Limpieza ─────────────────────────────────────────────" 10 10 $tabRepair
+New-SectionLabel " Limpieza " 10 10 $tabRepair
 
-$btnLimpiar = New-CorporateButton "🗑  Limpiar Temporales" 10 35
+$btnLimpiar = New-CorporateButton "  Limpiar Temporales" 10 35
 $btnLimpiar.Add_Click({
     Remove-Item "$env:TEMP\*" -Recurse -Force -EA SilentlyContinue
     Remove-Item "C:\Windows\Temp\*" -Recurse -Force -EA SilentlyContinue
-    Write-Out "✔ Temporales eliminados correctamente." ([Drawing.Color]::LightGreen)
+    Write-Out " Temporales eliminados correctamente." ([Drawing.Color]::LightGreen)
 })
 $tabRepair.Controls.Add($btnLimpiar)
 
-$btnPrefetch = New-CorporateButton "🗑  Limpiar Prefetch" 220 35
+$btnPrefetch = New-CorporateButton "  Limpiar Prefetch" 220 35
 $btnPrefetch.Add_Click({
     Remove-Item "C:\Windows\Prefetch\*" -Recurse -Force -EA SilentlyContinue
-    Write-Out "✔ Prefetch limpiado." ([Drawing.Color]::LightGreen)
+    Write-Out " Prefetch limpiado." ([Drawing.Color]::LightGreen)
 })
 $tabRepair.Controls.Add($btnPrefetch)
 
-New-SectionLabel "── Reparación de Windows ────────────────────────────────" 10 85 $tabRepair
+New-SectionLabel " Reparacin de Windows " 10 85 $tabRepair
 
-$btnSFC = New-CorporateButton "🔍  SFC /scannow" 10 110
+$btnSFC = New-CorporateButton "  SFC /scannow" 10 110
 $btnSFC.Add_Click({ Run-Cmd "sfc /scannow" })
 $tabRepair.Controls.Add($btnSFC)
 
-$btnDISM = New-CorporateButton "🔧  DISM RestoreHealth" 220 110
+$btnDISM = New-CorporateButton "  DISM RestoreHealth" 220 110
 $btnDISM.Add_Click({ Run-Cmd "DISM /Online /Cleanup-Image /RestoreHealth" })
 $tabRepair.Controls.Add($btnDISM)
 
-$btnChkDsk = New-CorporateButton "💽  CheckDisk (C:)" 430 110
+$btnChkDsk = New-CorporateButton "  CheckDisk (C:)" 430 110
 $btnChkDsk.Add_Click({ Run-Cmd "chkdsk C: /f /r /x" })
 $tabRepair.Controls.Add($btnChkDsk)
 
-New-SectionLabel "── Red ──────────────────────────────────────────────────" 10 160 $tabRepair
+New-SectionLabel " Red " 10 160 $tabRepair
 
-$btnDNS = New-CorporateButton "🌐  DNS Flush" 10 185
+$btnDNS = New-CorporateButton "  DNS Flush" 10 185
 $btnDNS.Add_Click({ Run-Cmd "ipconfig /flushdns" })
 $tabRepair.Controls.Add($btnDNS)
 
-$btnNetReset = New-CorporateButton "🔄  Reset Red (netsh)" 220 185
+$btnNetReset = New-CorporateButton "  Reset Red (netsh)" 220 185
 $btnNetReset.Add_Click({
     Run-Cmd "netsh int ip reset"
     Run-Cmd "netsh winsock reset"
-    Write-Out "⚠ Reinicia el PC para aplicar cambios de red." ([Drawing.Color]::Yellow)
+    Write-Out " Reinicia el PC para aplicar cambios de red." ([Drawing.Color]::Yellow)
 })
 $tabRepair.Controls.Add($btnNetReset)
 
-$btnPuertos = New-CorporateButton "🔌  Ver Puertos" 430 185
+$btnPuertos = New-CorporateButton "  Ver Puertos" 430 185
 $btnPuertos.Add_Click({ Run-Cmd "netstat -ano" })
 $tabRepair.Controls.Add($btnPuertos)
 
-$btnKill80 = New-CorporateButton "❌  Matar Puerto 80" 640 185
+$btnKill80 = New-CorporateButton "  Matar Puerto 80" 640 185
 $btnKill80.Add_Click({
     $pids = (netstat -ano | Select-String ":80\s") -replace '.*\s(\d+)$','$1' | Sort-Object -Unique
     foreach ($p in $pids) {
         if ($p -match '^\d+$') {
             Stop-Process -Id $p -Force -EA SilentlyContinue
-            Write-Out "✔ Proceso PID $p en puerto 80 terminado." ([Drawing.Color]::LightGreen)
+            Write-Out " Proceso PID $p en puerto 80 terminado." ([Drawing.Color]::LightGreen)
         }
     }
 })
@@ -218,10 +242,10 @@ $appList = @(
     @{cat="Navegadores";    name="Mozilla Firefox";  cmd="winget install -e --id Mozilla.Firefox"},
     @{cat="Navegadores";    name="Brave Browser";    cmd="winget install -e --id Brave.Brave"; foss=$true},
     @{cat="Navegadores";    name="LibreWolf";         cmd="winget install -e --id LibreWolf.LibreWolf"; foss=$true},
-    @{cat="Comunicación";   name="Discord";           cmd="winget install -e --id Discord.Discord"},
-    @{cat="Comunicación";   name="Telegram";          cmd="winget install -e --id Telegram.TelegramDesktop"; foss=$true},
-    @{cat="Comunicación";   name="Slack";             cmd="winget install -e --id SlackTechnologies.Slack"},
-    @{cat="Comunicación";   name="Signal";            cmd="winget install -e --id OpenWhisperSystems.Signal"; foss=$true},
+    @{cat="Comunicacin";   name="Discord";           cmd="winget install -e --id Discord.Discord"},
+    @{cat="Comunicacin";   name="Telegram";          cmd="winget install -e --id Telegram.TelegramDesktop"; foss=$true},
+    @{cat="Comunicacin";   name="Slack";             cmd="winget install -e --id SlackTechnologies.Slack"},
+    @{cat="Comunicacin";   name="Signal";            cmd="winget install -e --id OpenWhisperSystems.Signal"; foss=$true},
     @{cat="Desarrollo";     name="VS Code";           cmd="winget install -e --id Microsoft.VisualStudioCode"},
     @{cat="Desarrollo";     name="Git";               cmd="winget install -e --id Git.Git"; foss=$true},
     @{cat="Desarrollo";     name="Python 3";          cmd="winget install -e --id Python.Python.3"; foss=$true},
@@ -243,7 +267,7 @@ foreach ($app in $appList) {
         $col = 0
         if ($lastCat -ne "") { $yPos += 10 }
         $lbl = New-Object Windows.Forms.Label
-        $lbl.Text = "── $($app.cat) ─────────────────────────────"
+        $lbl.Text = " $($app.cat) "
         $lbl.Location = New-Object Drawing.Point(5, $yPos)
         $lbl.Size = New-Object Drawing.Size(860, 20)
         $lbl.ForeColor = $cAccent2
@@ -276,45 +300,45 @@ $pnlAppBtns.BackColor = $cPanel
 $tabApps.Controls.Add($pnlAppBtns)
 
 $lblFoss = New-Object Windows.Forms.Label
-$lblFoss.Text = "🟦 Azul claro = FOSS (Software Libre)"
+$lblFoss.Text = " Azul claro = FOSS (Software Libre)"
 $lblFoss.ForeColor = $cAccent2
 $lblFoss.Location = New-Object Drawing.Point(10, 12)
 $lblFoss.Size = New-Object Drawing.Size(300, 20)
 $pnlAppBtns.Controls.Add($lblFoss)
 
-$btnInstallApps = New-CorporateButton "📦  Instalar Seleccionadas" 530 5 200 34
+$btnInstallApps = New-CorporateButton "  Instalar Seleccionadas" 530 5 200 34
 $btnInstallApps.Add_Click({
     $sel = $checkboxes | Where-Object { $_.Checked }
     if ($sel.Count -eq 0) {
-        Write-Out "⚠ No seleccionaste ninguna aplicación." ([Drawing.Color]::Yellow)
+        Write-Out " No seleccionaste ninguna aplicacin." ([Drawing.Color]::Yellow)
         return
     }
     foreach ($cb in $sel) {
         Write-Out "Instalando: $($cb.Text)..." $cSubText
         Start-Process powershell -ArgumentList "-NoProfile -Command `"$($cb.Tag)`"" -Wait
-        Write-Out "✔ $($cb.Text) instalado." ([Drawing.Color]::LightGreen)
+        Write-Out " $($cb.Text) instalado." ([Drawing.Color]::LightGreen)
     }
 })
 $pnlAppBtns.Controls.Add($btnInstallApps)
 
-$btnClear = New-CorporateButton "✖  Limpiar Selección" 320 5 200 34
+$btnClear = New-CorporateButton "  Limpiar Seleccin" 320 5 200 34
 $btnClear.Add_Click({ $checkboxes | ForEach-Object { $_.Checked = $false } })
 $pnlAppBtns.Controls.Add($btnClear)
 
 # ============================================================
 #   TAB 3: TWEAKS
 # ============================================================
-New-SectionLabel "── Rendimiento ──────────────────────────────────────────" 10 10 $tabTweaks
+New-SectionLabel " Rendimiento " 10 10 $tabTweaks
 
 $tweaks = @(
-    @{name="⚡ Plan de energía: Alto rendimiento";  cmd='powercfg /s 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c'},
-    @{name="🚀 Deshabilitar efectos visuales";       cmd='SystemPropertiesPerformance.exe'},
-    @{name="🔕 Deshabilitar notificaciones";         cmd='reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\PushNotifications" /v ToastEnabled /t REG_DWORD /d 0 /f'},
-    @{name="🛡  Deshabilitar Telemetría";             cmd='reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection" /v AllowTelemetry /t REG_DWORD /d 0 /f'},
-    @{name="📵 Deshabilitar Cortana";                cmd='reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /v AllowCortana /t REG_DWORD /d 0 /f'},
-    @{name="🕹  Modo juego activado";                cmd='reg add "HKCU\Software\Microsoft\GameBar" /v AllowAutoGameMode /t REG_DWORD /d 1 /f'},
-    @{name="📌 Mostrar extensiones de archivo";      cmd='reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v HideFileExt /t REG_DWORD /d 0 /f'},
-    @{name="🖥  Mostrar archivos ocultos";            cmd='reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v Hidden /t REG_DWORD /d 1 /f'}
+    @{name=" Plan de energa: Alto rendimiento";  cmd='powercfg /s 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c'},
+    @{name=" Deshabilitar efectos visuales";       cmd='SystemPropertiesPerformance.exe'},
+    @{name=" Deshabilitar notificaciones";         cmd='reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\PushNotifications" /v ToastEnabled /t REG_DWORD /d 0 /f'},
+    @{name="  Deshabilitar Telemetra";             cmd='reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection" /v AllowTelemetry /t REG_DWORD /d 0 /f'},
+    @{name=" Deshabilitar Cortana";                cmd='reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /v AllowCortana /t REG_DWORD /d 0 /f'},
+    @{name="  Modo juego activado";                cmd='reg add "HKCU\Software\Microsoft\GameBar" /v AllowAutoGameMode /t REG_DWORD /d 1 /f'},
+    @{name=" Mostrar extensiones de archivo";      cmd='reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v HideFileExt /t REG_DWORD /d 0 /f'},
+    @{name="  Mostrar archivos ocultos";            cmd='reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v Hidden /t REG_DWORD /d 1 /f'}
 )
 
 $yT = 35
@@ -334,19 +358,19 @@ foreach ($tw in $tweaks) {
     if ($colT -ge 2) { $colT = 0; $yT += 28 }
 }
 
-$btnApplyTweaks = New-CorporateButton "⚡  Aplicar Tweaks Seleccionados" 10 330 260 38
+$btnApplyTweaks = New-CorporateButton "  Aplicar Tweaks Seleccionados" 10 330 260 38
 $btnApplyTweaks.Add_Click({
     $sel = $tweakChecks | Where-Object { $_.Checked }
     if ($sel.Count -eq 0) {
-        Write-Out "⚠ No seleccionaste ningún tweak." ([Drawing.Color]::Yellow)
+        Write-Out " No seleccionaste ningn tweak." ([Drawing.Color]::Yellow)
         return
     }
     foreach ($cb in $sel) {
         Write-Out "Aplicando: $($cb.Text)..." $cSubText
         Invoke-Expression $cb.Tag 2>&1 | Out-Null
-        Write-Out "✔ Listo." ([Drawing.Color]::LightGreen)
+        Write-Out " Listo." ([Drawing.Color]::LightGreen)
     }
-    Write-Out "✔ Todos los tweaks aplicados. Puede requerir reinicio." ([Drawing.Color]::LightGreen)
+    Write-Out " Todos los tweaks aplicados. Puede requerir reinicio." ([Drawing.Color]::LightGreen)
 })
 $tabTweaks.Controls.Add($btnApplyTweaks)
 
@@ -363,7 +387,7 @@ $infoBox.ReadOnly = $true
 $infoBox.BorderStyle = "None"
 $tabInfo.Controls.Add($infoBox)
 
-$btnInfo = New-CorporateButton "🖥  Cargar Info del Sistema" 5 355 220 36
+$btnInfo = New-CorporateButton "  Cargar Info del Sistema" 5 355 220 36
 $btnInfo.Add_Click({
     $infoBox.Clear()
     $os  = Get-CimInstance Win32_OperatingSystem
@@ -372,20 +396,20 @@ $btnInfo.Add_Click({
     $free= [math]::Round($os.FreePhysicalMemory / 1MB, 2)
     $disk= Get-PSDrive C
     $infoBox.AppendText("Sistema Operativo : $($os.Caption)`r`n")
-    $infoBox.AppendText("Versión           : $($os.Version)`r`n")
+    $infoBox.AppendText("Versin           : $($os.Version)`r`n")
     $infoBox.AppendText("Arquitectura      : $($os.OSArchitecture)`r`n")
     $infoBox.AppendText("Procesador        : $($cpu.Name)`r`n")
-    $infoBox.AppendText("Núcleos           : $($cpu.NumberOfCores) núcleos / $($cpu.NumberOfLogicalProcessors) lógicos`r`n")
+    $infoBox.AppendText("Ncleos           : $($cpu.NumberOfCores) ncleos / $($cpu.NumberOfLogicalProcessors) lgicos`r`n")
     $infoBox.AppendText("RAM Total         : $mem GB`r`n")
     $infoBox.AppendText("RAM Libre         : $free GB`r`n")
     $infoBox.AppendText("Disco C: Libre    : $([math]::Round($disk.Free/1GB,2)) GB de $([math]::Round(($disk.Used+$disk.Free)/1GB,2)) GB`r`n")
     $infoBox.AppendText("Nombre del equipo : $env:COMPUTERNAME`r`n")
     $infoBox.AppendText("Usuario actual    : $env:USERNAME`r`n")
-    Write-Out "✔ Información del sistema cargada." ([Drawing.Color]::LightGreen)
+    Write-Out " Informacin del sistema cargada." ([Drawing.Color]::LightGreen)
 })
 $tabInfo.Controls.Add($btnInfo)
 
-$btnUptime = New-CorporateButton "⏱  Ver Uptime" 235 355 160 36
+$btnUptime = New-CorporateButton "  Ver Uptime" 235 355 160 36
 $btnUptime.Add_Click({
     $boot = (Get-CimInstance Win32_OperatingSystem).LastBootUpTime
     $up   = (Get-Date) - $boot
@@ -393,7 +417,7 @@ $btnUptime.Add_Click({
 })
 $tabInfo.Controls.Add($btnUptime)
 
-$btnUpdates = New-CorporateButton "🔄  Buscar Actualizaciones" 405 355 200 36
+$btnUpdates = New-CorporateButton "  Buscar Actualizaciones" 405 355 200 36
 $btnUpdates.Add_Click({ Start-Process ms-settings:windowsupdate })
 $tabInfo.Controls.Add($btnUpdates)
 
