@@ -25,8 +25,8 @@ $cBorder   = [Drawing.Color]::FromArgb(0, 120, 215)
 #   FORMULARIO PRINCIPAL
 # ============================================================
 $form = New-Object Windows.Forms.Form
-$form.Text = "SysCodi7 WinTool Pro"
-$form.Size = New-Object Drawing.Size(900, 750)
+$form.Text = "SYSCODI77 WinTool Pro"
+$form.Size = New-Object Drawing.Size(1200, 650)
 $form.StartPosition = "CenterScreen"
 $form.BackColor = $cBg
 $form.ForeColor = $cText
@@ -63,7 +63,7 @@ if (Test-Path $logoPath) {
 }
 
 $lblTitle = New-Object Windows.Forms.Label
-$lblTitle.Text = "SysCodi7 WinTool Pro"
+$lblTitle.Text = "SYSCODI7 WinTool Pro"
 $lblTitle.Font = New-Object Drawing.Font("Segoe UI", 14, [Drawing.FontStyle]::Bold)
 $lblTitle.ForeColor = $cAccent2
 $lblTitle.Location = New-Object Drawing.Point($titleX, 10)
@@ -83,7 +83,7 @@ $header.Controls.Add($lblSub)
 # ============================================================
 $tabs = New-Object Windows.Forms.TabControl
 $tabs.Location = New-Object Drawing.Point(5, 65)
-$tabs.Size = New-Object Drawing.Size(885, 390)
+$tabs.Size = New-Object Drawing.Size(720, 520)
 $tabs.BackColor = $cBg
 $tabs.Appearance = "FlatButtons"
 $tabs.Font = New-Object Drawing.Font("Segoe UI", 10, [Drawing.FontStyle]::Bold)
@@ -106,17 +106,36 @@ $tabInfo    = New-Tab "  Sistema"
 # ============================================================
 #   OUTPUT COMPARTIDO (parte baja)
 # ============================================================
+# Panel derecho - Consola
+$rightPanel = New-Object Windows.Forms.Panel
+$rightPanel.Location = New-Object Drawing.Point(730, 65)
+$rightPanel.Size = New-Object Drawing.Size(455, 520)
+$rightPanel.BackColor = [Drawing.Color]::FromArgb(10, 18, 40)
+$form.Controls.Add($rightPanel)
+
 $lblConsole = New-Object Windows.Forms.Label
-$lblConsole.Text = "  Consola de salida:"
-$lblConsole.Location = New-Object Drawing.Point(5, 458)
-$lblConsole.Size = New-Object Drawing.Size(200, 20)
+$lblConsole.Text = "  Consola de salida"
+$lblConsole.Location = New-Object Drawing.Point(0, 0)
+$lblConsole.Size = New-Object Drawing.Size(455, 28)
 $lblConsole.ForeColor = [Drawing.Color]::FromArgb(0, 180, 255)
-$lblConsole.Font = New-Object Drawing.Font("Segoe UI", 8, [Drawing.FontStyle]::Bold)
-$form.Controls.Add($lblConsole)
+$lblConsole.BackColor = [Drawing.Color]::FromArgb(22, 38, 75)
+$lblConsole.Font = New-Object Drawing.Font("Segoe UI", 9, [Drawing.FontStyle]::Bold)
+$lblConsole.TextAlign = "MiddleLeft"
+$rightPanel.Controls.Add($lblConsole)
+
+$btnClearOutput = New-Object Windows.Forms.Button
+$btnClearOutput.Text = "Limpiar"
+$btnClearOutput.Location = New-Object Drawing.Point(370, 3)
+$btnClearOutput.Size = New-Object Drawing.Size(80, 22)
+$btnClearOutput.BackColor = [Drawing.Color]::FromArgb(0, 100, 180)
+$btnClearOutput.ForeColor = [Drawing.Color]::White
+$btnClearOutput.FlatStyle = "Flat"
+$btnClearOutput.Font = New-Object Drawing.Font("Segoe UI", 7)
+$rightPanel.Controls.Add($btnClearOutput)
 
 $outputBox = New-Object Windows.Forms.RichTextBox
-$outputBox.Location = New-Object Drawing.Point(5, 460)
-$outputBox.Size = New-Object Drawing.Size(885, 220)
+$outputBox.Location = New-Object Drawing.Point(0, 30)
+$outputBox.Size = New-Object Drawing.Size(455, 490)
 $outputBox.BackColor = $cOutput
 $outputBox.ForeColor = $cAccent2
 $outputBox.Font = New-Object Drawing.Font("Consolas", 9)
@@ -433,9 +452,9 @@ $tabInfo.Controls.Add($btnUpdates)
 #   FOOTER
 # ============================================================
 $footer = New-Object Windows.Forms.Label
-$footer.Text = "SysCodi7 WinTool Pro  |  Usa WinGet como gestor de paquetes  |  Ejecutar siempre como Administrador"
-$footer.Location = New-Object Drawing.Point(0, 685)
-$footer.Size = New-Object Drawing.Size(900, 20)
+$footer.Text = "SYSCODI7 WinTool Pro  |  Usa WinGet como gestor de paquetes  |  Ejecutar siempre como Administrador"
+$footer.Location = New-Object Drawing.Point(0, 620)
+$footer.Size = New-Object Drawing.Size(1200, 20)
 $footer.TextAlign = "MiddleCenter"
 $footer.ForeColor = $cSubText
 $footer.Font = New-Object Drawing.Font("Segoe UI", 7)
