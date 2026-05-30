@@ -26,7 +26,7 @@ $cBorder   = [Drawing.Color]::FromArgb(0, 120, 215)
 # ============================================================
 $form = New-Object Windows.Forms.Form
 $form.Text = "SysCodi WinTool Pro"
-$form.Size = New-Object Drawing.Size(900, 620)
+$form.Size = New-Object Drawing.Size(900, 750)
 $form.StartPosition = "CenterScreen"
 $form.BackColor = $cBg
 $form.ForeColor = $cText
@@ -83,7 +83,7 @@ $header.Controls.Add($lblSub)
 # ============================================================
 $tabs = New-Object Windows.Forms.TabControl
 $tabs.Location = New-Object Drawing.Point(5, 65)
-$tabs.Size = New-Object Drawing.Size(885, 460)
+$tabs.Size = New-Object Drawing.Size(885, 390)
 $tabs.BackColor = $cBg
 $tabs.Appearance = "FlatButtons"
 $tabs.Font = New-Object Drawing.Font("Segoe UI", 10, [Drawing.FontStyle]::Bold)
@@ -106,12 +106,20 @@ $tabInfo    = New-Tab "  Sistema"
 # ============================================================
 #   OUTPUT COMPARTIDO (parte baja)
 # ============================================================
+$lblConsole = New-Object Windows.Forms.Label
+$lblConsole.Text = "  Consola de salida:"
+$lblConsole.Location = New-Object Drawing.Point(5, 458)
+$lblConsole.Size = New-Object Drawing.Size(200, 20)
+$lblConsole.ForeColor = [Drawing.Color]::FromArgb(0, 180, 255)
+$lblConsole.Font = New-Object Drawing.Font("Segoe UI", 8, [Drawing.FontStyle]::Bold)
+$form.Controls.Add($lblConsole)
+
 $outputBox = New-Object Windows.Forms.RichTextBox
-$outputBox.Location = New-Object Drawing.Point(5, 530)
-$outputBox.Size = New-Object Drawing.Size(885, 50)
+$outputBox.Location = New-Object Drawing.Point(5, 460)
+$outputBox.Size = New-Object Drawing.Size(885, 220)
 $outputBox.BackColor = $cOutput
 $outputBox.ForeColor = $cAccent2
-$outputBox.Font = New-Object Drawing.Font("Consolas", 8)
+$outputBox.Font = New-Object Drawing.Font("Consolas", 9)
 $outputBox.ReadOnly = $true
 $outputBox.BorderStyle = "None"
 $outputBox.Text = "  Listo. Selecciona una opcin y ejecuta."
@@ -426,7 +434,7 @@ $tabInfo.Controls.Add($btnUpdates)
 # ============================================================
 $footer = New-Object Windows.Forms.Label
 $footer.Text = "SysCodi WinTool Pro  |  Usa WinGet como gestor de paquetes  |  Ejecutar siempre como Administrador"
-$footer.Location = New-Object Drawing.Point(0, 582)
+$footer.Location = New-Object Drawing.Point(0, 685)
 $footer.Size = New-Object Drawing.Size(900, 20)
 $footer.TextAlign = "MiddleCenter"
 $footer.ForeColor = $cSubText
