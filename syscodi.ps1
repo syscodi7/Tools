@@ -25,7 +25,7 @@ $cBorder   = [Drawing.Color]::FromArgb(0, 120, 215)
 #   FORMULARIO PRINCIPAL
 # ============================================================
 $form = New-Object Windows.Forms.Form
-$form.Text = "SYSCODI77 WinTool Pro"
+$form.Text = "SysCodi WinTool Pro"
 $form.Size = New-Object Drawing.Size(1200, 650)
 $form.StartPosition = "CenterScreen"
 $form.BackColor = $cBg
@@ -38,10 +38,11 @@ $form.MaximizeBox = $false
 #   HEADER
 # ============================================================
 $header = New-Object Windows.Forms.Panel
-$header.Size = New-Object Drawing.Size(900, 60)
+$header.Size = New-Object Drawing.Size(1200, 60)
 $header.Location = New-Object Drawing.Point(0, 0)
 $header.BackColor = $cPanel
 $form.Controls.Add($header)
+$header.BringToFront()
 
 # Logo PNG en el header
 if (Test-Path $logoPath) {
@@ -63,7 +64,7 @@ if (Test-Path $logoPath) {
 }
 
 $lblTitle = New-Object Windows.Forms.Label
-$lblTitle.Text = "SYSCODI7 WinTool Pro"
+$lblTitle.Text = "SysCodi WinTool Pro"
 $lblTitle.Font = New-Object Drawing.Font("Segoe UI", 14, [Drawing.FontStyle]::Bold)
 $lblTitle.ForeColor = $cAccent2
 $lblTitle.Location = New-Object Drawing.Point($titleX, 10)
@@ -108,7 +109,7 @@ $tabInfo    = New-Tab "  Sistema"
 # ============================================================
 # Panel derecho - Consola
 $rightPanel = New-Object Windows.Forms.Panel
-$rightPanel.Location = New-Object Drawing.Point(730, 65)
+$rightPanel.Location = New-Object Drawing.Point(728, 65)
 $rightPanel.Size = New-Object Drawing.Size(455, 520)
 $rightPanel.BackColor = [Drawing.Color]::FromArgb(10, 18, 40)
 $form.Controls.Add($rightPanel)
@@ -142,7 +143,7 @@ $outputBox.Font = New-Object Drawing.Font("Consolas", 9)
 $outputBox.ReadOnly = $true
 $outputBox.BorderStyle = "None"
 $outputBox.Text = "  Listo. Selecciona una opcin y ejecuta."
-$form.Controls.Add($outputBox)
+$rightPanel.Controls.Add($outputBox)
 
 function Write-Out($msg, $color = $null) {
     $outputBox.SelectionStart = $outputBox.TextLength
@@ -452,7 +453,7 @@ $tabInfo.Controls.Add($btnUpdates)
 #   FOOTER
 # ============================================================
 $footer = New-Object Windows.Forms.Label
-$footer.Text = "SYSCODI7 WinTool Pro  |  Usa WinGet como gestor de paquetes  |  Ejecutar siempre como Administrador"
+$footer.Text = "SysCodi WinTool Pro  |  Usa WinGet como gestor de paquetes  |  Ejecutar siempre como Administrador"
 $footer.Location = New-Object Drawing.Point(0, 620)
 $footer.Size = New-Object Drawing.Size(1200, 20)
 $footer.TextAlign = "MiddleCenter"
@@ -462,3 +463,4 @@ $form.Controls.Add($footer)
 
 # ============================================================
 $form.ShowDialog()
+
