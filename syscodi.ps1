@@ -810,7 +810,8 @@ $b.Add_Click({
         $item.SubItems.Add($_.ProcessName) | Out-Null
         $item.SubItems.Add([math]::Round($_.CPU,1).ToString()) | Out-Null
         $item.SubItems.Add([math]::Round($_.WorkingSet64/1MB,1).ToString()) | Out-Null
-        $item.SubItems.Add($_.Responding ? "Activo" : "No responde") | Out-Null
+        $estado = if ($_.Responding) { "Activo" } else { "No responde" }
+        $item.SubItems.Add($estado) | Out-Null
         $procList.Items.Add($item) | Out-Null
     }
     Write-Out "Lista de procesos actualizada." $cGreen
