@@ -3,7 +3,7 @@ Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
 # ============================================================
-#   VERIFICACIÓN DE ADMINISTRADOR
+#   VERIFICACION DE ADMINISTRADOR
 # ============================================================
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
@@ -15,31 +15,19 @@ if (-not $isAdmin) {
 }
 
 # ============================================================
-#   SISTEMA DE LOGS
+#   COLORES CORPORATIVOS (Fieles a la imagen)
 # ============================================================
-$logDir = "C:\SysCodi\logs"
-if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
-$logFile = "$logDir\$(Get-Date -Format 'yyyy-MM-dd').log"
-function Write-Log($msg) {
-    $entry = "[$(Get-Date -Format 'HH:mm:ss')] $msg"
-    Add-Content -Path $logFile -Value $entry -Encoding UTF8 -EA SilentlyContinue
-}
-
-# ============================================================
-#   COLORES CORPORATIVOS (Fieles a la captura de pantalla)
-# ============================================================
-$cBg       = [Drawing.Color]::FromArgb(13, 22, 45)
-$cPanel    = [Drawing.Color]::FromArgb(20, 35, 70)
-$cCard     = [Drawing.Color]::FromArgb(28, 48, 96)
-$cAccent   = [Drawing.Color]::FromArgb(0, 120, 215)
+$cBg       = [Drawing.Color]::FromArgb(13, 23, 43)
+$cPanel    = [Drawing.Color]::FromArgb(18, 32, 62)
+$cCard     = [Drawing.Color]::FromArgb(24, 42, 82)
+$cAccent   = [Drawing.Color]::FromArgb(0, 102, 204)
 $cAccent2  = [Drawing.Color]::FromArgb(0, 180, 255)
 $cGreen    = [Drawing.Color]::FromArgb(0, 210, 130)
-$cYellow   = [Drawing.Color]::FromArgb(255, 200, 50)
 $cRed      = [Drawing.Color]::FromArgb(255, 80, 80)
 $cText     = [Drawing.Color]::White
-$cSubText  = [Drawing.Color]::FromArgb(160, 200, 255)
-$cBtn      = [Drawing.Color]::FromArgb(16, 42, 82)
-$cOutput   = [Drawing.Color]::FromArgb(8, 15, 35)
+$cSubText  = [Drawing.Color]::FromArgb(140, 175, 225)
+$cBtn      = [Drawing.Color]::FromArgb(14, 46, 92)
+$cOutput   = [Drawing.Color]::FromArgb(8, 16, 32)
 
 # ============================================================
 #   FORMULARIO PRINCIPAL
@@ -52,110 +40,155 @@ $form.BackColor     = $cBg
 $form.ForeColor     = $cText
 $form.Font          = New-Object Drawing.Font("Segoe UI", 9)
 $form.FormBorderStyle = "Sizable"
-$form.MinimumSize   = New-Object Drawing.Size(1100, 680)
 
 # ============================================================
-#   HEADER
+#   HEADER (Superior completo)
 # ============================================================
 $header = New-Object Windows.Forms.Panel
-$header.Size      = New-Object Drawing.Size(1280, 64)
+$header.Size      = New-Object Drawing.Size(1264, 75)
 $header.Location  = New-Object Drawing.Point(0, 0)
-$header.BackColor = $cPanel
+$header.BackColor = $cBg
 $header.Anchor    = "Top, Left, Right"
 $form.Controls.Add($header)
 
+# Simbología del Logo (Cuadrado Azul)
+$logoBox = New-Object Windows.Forms.Panel
+$logoBox.Location = New-Object Drawing.Point(18, 15)
+$logoBox.Size     = New-Object Drawing.Size(45, 45)
+$logoBox.BackColor = $cAccent
+$header.Controls.Add($logoBox)
+
 $lblTitle = New-Object Windows.Forms.Label
 $lblTitle.Text     = "SysCodi WinTool Pro"
-$lblTitle.Font     = New-Object Drawing.Font("Segoe UI", 16, [Drawing.FontStyle]::Bold)
-$lblTitle.ForeColor = $cAccent2
-$lblTitle.Location = New-Object Drawing.Point(15, 8)
-$lblTitle.Size     = New-Object Drawing.Size(420, 32)
+$lblTitle.Font     = New-Object Drawing.Font("Segoe UI", 20, [Drawing.FontStyle]::Bold)
+$lblTitle.ForeColor = $cText
+$lblTitle.Location = New-Object Drawing.Point(75, 10)
+$lblTitle.Size     = New-Object Drawing.Size(350, 35)
 $header.Controls.Add($lblTitle)
 
 $lblSub = New-Object Windows.Forms.Label
 $lblSub.Text      = "Utilidad de sistema avanzada para Windows"
-$lblSub.Font      = New-Object Drawing.Font("Segoe UI", 9)
+$lblSub.Font      = New-Object Drawing.Font("Segoe UI", 9.5)
 $lblSub.ForeColor = $cSubText
-$lblSub.Location  = New-Object Drawing.Point(17, 38)
-$lblSub.Size      = New-Object Drawing.Size(500, 18)
+$lblSub.Location  = New-Object Drawing.Point(78, 45)
+$lblSub.Size      = New-Object Drawing.Size(400, 20)
 $header.Controls.Add($lblSub)
 
-# Sistema Info en Header (Derecha)
+# Meta Datos del Sistema (Superior Derecha)
 $lblSysInfo = New-Object Windows.Forms.Label
-$lblSysInfo.Text      = "Windows 11 Pro 23H2`nUsuario: syscodi"
-$lblSysInfo.Font      = New-Object Drawing.Font("Segoe UI", 8.5)
+$lblSysInfo.Text      = "Windows 11 Pro 23H2 (22631.3527)`r`nUsuario: syscodi              Tiempo activo: 0d 2h 15m`r`nEquipo: DESKTOP-7H5K2Q1     Fecha: 24/05/2025 12:38:45"
+$lblSysInfo.Font      = New-Object Drawing.Font("Segoe UI", 9)
 $lblSysInfo.ForeColor = $cSubText
-$lblSysInfo.Location  = New-Object Drawing.Point(1000, 12)
-$lblSysInfo.Size      = New-Object Drawing.Size(250, 40)
+$lblSysInfo.Location  = New-Object Drawing.Point(720, 15)
+$lblSysInfo.Size      = New-Object Drawing.Size(520, 50)
 $lblSysInfo.TextAlign = "TopRight"
 $lblSysInfo.Anchor    = "Top, Right"
 $header.Controls.Add($lblSysInfo)
 
 # ============================================================
-#   BARRA DE PROGRESO GLOBAL
+#   TABS DE NAVEGACIÓN (Diseño de Botones Planos en Fila)
 # ============================================================
-$progressBar = New-Object Windows.Forms.ProgressBar
-$progressBar.Location = New-Object Drawing.Point(0, 64)
-$progressBar.Size      = New-Object Drawing.Size(1280, 4)
-$progressBar.Style    = "Marquee"
-$progressBar.MarqueeAnimationSpeed = 0
-$progressBar.BackColor = $cPanel
-$progressBar.ForeColor = $cAccent2
-$progressBar.Anchor    = "Top, Left, Right"
-$form.Controls.Add($progressBar)
+$navPanel = New-Object Windows.Forms.Panel
+$navPanel.Location = New-Object Drawing.Point(18, 85)
+$navPanel.Size     = New-Object Drawing.Size(1228, 40)
+$navPanel.Anchor   = "Top, Left, Right"
+$form.Controls.Add($navPanel)
 
-function Start-Progress { $progressBar.MarqueeAnimationSpeed = 30; $form.Refresh() }
-function Stop-Progress  { $progressBar.MarqueeAnimationSpeed = 0;  $progressBar.Value = 0 }
-
-# ============================================================
-#   TAB CONTROL (Pestañas principales superiores)
-# ============================================================
-$tabs = New-Object Windows.Forms.TabControl
-$tabs.Location   = New-Object Drawing.Point(12, 75)
-$tabs.Size       = New-Object Drawing.Size(760, 480)
-$tabs.BackColor  = $cBg
-$tabs.Appearance = "FlatButtons"
-$tabs.Font       = New-Object Drawing.Font("Segoe UI", 10, [Drawing.FontStyle]::Bold)
-$tabs.Anchor     = "Top,Left,Bottom,Right"
-$form.Controls.Add($tabs)
-
-function New-Tab($titulo) {
-    $t = New-Object Windows.Forms.TabPage
-    $t.Text      = "$titulo"
-    $t.BackColor = $cBg
-    $t.ForeColor = $cText
-    $tabs.TabPages.Add($t)
-    return $t
+$tabTitles = @("Reparación", "Aplicaciones", "Tweaks", "Utilidades", "Transferencia", "Sistema", "Dashboard", "Reportes", "Ajustes")
+$currentX = 0
+foreach ($title in $tabTitles) {
+    $btnTab = New-Object Windows.Forms.Button
+    $btnTab.Text = "   $title"
+    $btnTab.Size = New-Object Drawing.Size(130, 35)
+    $btnTab.Location = New-Object Drawing.Point($currentX, 0)
+    $btnTab.FlatStyle = "Flat"
+    $btnTab.Font = New-Object Drawing.Font("Segoe UI", 9.5, [Drawing.FontStyle]::Bold)
+    $btnTab.ForeColor = if ($title -eq "Reparación") { $cText } else { $cSubText }
+    $btnTab.BackColor = if ($title -eq "Reparación") { $cBtn } else { $cBg }
+    $btnTab.FlatAppearance.BorderColor = if ($title -eq "Reparación") { $cAccent } else { $cPanel }
+    $navPanel.Controls.Add($btnTab)
+    $currentX += 135
 }
 
-$tabRepair = New-Tab "Reparación"
-$tabApps   = New-Tab "Aplicaciones"
-$tabTweaks = New-Tab "Tweaks"
-$tabUtils  = New-Tab "Utilidades"
-$tabTrans  = New-Tab "Transferencia"
-$tabSystem = New-Tab "Sistema"
-$tabDash   = New-Tab "Dashboard"
+# ============================================================
+#   PANEL PRINCIPAL CONTENEDOR (Izquierda: Acciones de Reparación)
+# ============================================================
+$mainContent = New-Object Windows.Forms.Panel
+$mainContent.Location = New-Object Drawing.Point(18, 140)
+$mainContent.Size     = New-Object Drawing.Size(740, 390)
+$mainContent.BackColor = $cBg
+$mainContent.Anchor   = "Top, Left, Bottom, Right"
+$form.Controls.Add($mainContent)
+
+function New-ToolBlock($titulo, $y, $w=740, $h=100) {
+    $lbl = New-Object Windows.Forms.Label
+    $lbl.Text = $titulo
+    $lbl.Font = New-Object Drawing.Font("Segoe UI", 9.5, [Drawing.FontStyle]::Bold)
+    $lbl.ForeColor = $cAccent2
+    $lbl.Location = New-Object Drawing.Point(0, $y)
+    $lbl.Size = New-Object Drawing.Size(200, 20)
+    $mainContent.Controls.Add($lbl)
+
+    # Línea divisoria sutil
+    $line = New-Object Windows.Forms.Panel
+    $line.Location = New-Object Drawing.Point(0, $y + 22)
+    $line.Size = New-Object Drawing.Size(740, 1)
+    $line.BackColor = [Drawing.Color]::FromArgb(40, 60, 100)
+    $mainContent.Controls.Add($line)
+}
+
+function New-ActionButton($texto, $cmd, $x, $y) {
+    $btn = New-Object Windows.Forms.Button
+    $btn.Text = "      $texto"
+    $btn.TextAlign = "MiddleLeft"
+    $btn.Size = New-Object Drawing.Size(180, 45)
+    $btn.Location = New-Object Drawing.Point($x, $y)
+    $btn.BackColor = $cBtn
+    $btn.FlatStyle = "Flat"
+    $btn.Font = New-Object Drawing.Font("Segoe UI", 9.5)
+    $btn.FlatAppearance.BorderColor = $cPanel
+    $btn.Cursor = "Hand"
+    $btn.Add_Click({ Run-Cmd-BG $cmd $texto })
+    $mainContent.Controls.Add($btn)
+}
+
+# --- Sección Limpieza ---
+New-ToolBlock "Limpieza" 5
+New-ActionButton "Limpiar Temporales" 'Remove-Item "$env:TEMP\*" -Recurse -Force -EA SilentlyContinue' 0 35
+New-ActionButton "Limpiar Prefetch" 'Remove-Item "C:\Windows\Prefetch\*" -Recurse -Force -EA SilentlyContinue' 195 35
+
+# --- Sección Reparación de Windows ---
+New-ToolBlock "Reparación de Windows" 100
+New-ActionButton "SFC /scannow" 'sfc /scannow' 0 130
+New-ActionButton "DISM RestoreHealth" 'DISM /Online /Cleanup-Image /RestoreHealth' 195 130
+New-ActionButton "CheckDisk (C:)" 'chkdsk C: /f' 390 130
+
+# --- Sección Red ---
+New-ToolBlock "Red" 195
+New-ActionButton "DNS Flush" 'ipconfig /flushdns' 0 225
+New-ActionButton "Reset Red (netsh)" 'netsh int ip reset' 195 225
+New-ActionButton "Ver Puertos" 'netstat -ano' 390 225
+New-ActionButton "Matar Puerto 80" 'Stop-Process -Id (Get-NetTCPConnection -LocalPort 80).OwningProcess -Force' 585 225
 
 # ============================================================
 #   PANEL DERECHO - CONSOLA DE SALIDA
 # ============================================================
 $rightPanel = New-Object Windows.Forms.Panel
-$rightPanel.Location  = New-Object Drawing.Point(785, 75)
-$rightPanel.Size      = New-Object Drawing.Size(465, 480)
+$rightPanel.Location  = New-Object Drawing.Point(775, 140)
+$rightPanel.Size      = New-Object Drawing.Size(470, 390)
 $rightPanel.BackColor = $cOutput
-$rightPanel.Anchor    = "Top,Right,Bottom"
+$rightPanel.Anchor    = "Top, Right, Bottom"
 $form.Controls.Add($rightPanel)
 
 $pnlConHeader = New-Object Windows.Forms.Panel
 $pnlConHeader.Location  = New-Object Drawing.Point(0, 0)
-$pnlConHeader.Size      = New-Object Drawing.Size(465, 32)
+$pnlConHeader.Size      = New-Object Drawing.Size(470, 32)
 $pnlConHeader.BackColor = $cPanel
-$pnlConHeader.Anchor    = "Top, Left, Right"
 $rightPanel.Controls.Add($pnlConHeader)
 
 $lblConsole = New-Object Windows.Forms.Label
-$lblConsole.Text      = " Consola de salida"
-$lblConsole.Location  = New-Object Drawing.Point(5, 0)
+$lblConsole.Text      = "Consola de salida"
+$lblConsole.Location  = New-Object Drawing.Point(10, 0)
 $lblConsole.Size      = New-Object Drawing.Size(200, 32)
 $lblConsole.ForeColor = $cAccent2
 $lblConsole.Font      = New-Object Drawing.Font("Segoe UI", 9.5, [Drawing.FontStyle]::Bold)
@@ -163,11 +196,11 @@ $lblConsole.TextAlign = "MiddleLeft"
 $pnlConHeader.Controls.Add($lblConsole)
 
 $outputBox = New-Object Windows.Forms.RichTextBox
-$outputBox.Location    = New-Object Drawing.Point(10, 42)
-$outputBox.Size        = New-Object Drawing.Size(445, 425)
+$outputBox.Location    = New-Object Drawing.Point(15, 45)
+$outputBox.Size        = New-Object Drawing.Size(440, 330)
 $outputBox.BackColor   = $cOutput
 $outputBox.ForeColor   = $cAccent2
-$outputBox.Font        = New-Object Drawing.Font("Consolas", 9)
+$outputBox.Font        = New-Object Drawing.Font("Consolas", 10)
 $outputBox.ReadOnly    = $true
 $outputBox.BorderStyle = "None"
 $outputBox.ScrollBars  = "Vertical"
@@ -175,103 +208,44 @@ $outputBox.Anchor      = "Top,Left,Bottom,Right"
 $outputBox.Text        = "Listo. Selecciona una opción y ejecuta."
 $rightPanel.Controls.Add($outputBox)
 
-function Write-Out($msg, $color = $null) {
-    $outputBox.SelectionStart = $outputBox.TextLength
-    $outputBox.SelectionColor = if ($color) { $color } else { $cAccent2 }
-    $outputBox.AppendText("`r`n $msg")
-    $outputBox.ScrollToCaret()
-    Write-Log $msg
-}
-
 function Run-Cmd-BG($cmd, $label) {
-    Write-Out "Ejecutando: $label..." $cSubText
-    Start-Progress
+    $outputBox.Text = "Ejecutando: $label..."
     $job = Start-Job -ScriptBlock { param($c) Invoke-Expression $c 2>&1 } -ArgumentList $cmd
     $timer = New-Object Windows.Forms.Timer
     $timer.Interval = 400
     $timer.Add_Tick({
         if ($job.State -ne "Running") {
             $timer.Stop()
-            Stop-Progress
             $res = Receive-Job $job
             Remove-Job $job -Force
-            if ($res) { Write-Out ($res -join "`r`n ") $cText }
-            Write-Out "Completado con éxito." $cGreen
+            $outputBox.Text = if ($res) { $res -join "`r`n" } else { "Completado con éxito." }
         }
     })
     $timer.Start()
 }
 
 # ============================================================
-#   DISEÑO INTERNO: PESTAÑA REPARACIÓN
-# ============================================================
-$scrollRepair = New-Object Windows.Forms.Panel
-$scrollRepair.Dock = "Fill"
-$scrollRepair.AutoScroll = $true
-$tabRepair.Controls.Add($scrollRepair)
-
-function New-UIBlock($titulo, $y) {
-    $lbl = New-Object Windows.Forms.Label
-    $lbl.Text = $titulo
-    $lbl.Font = New-Object Drawing.Font("Segoe UI", 10, [Drawing.FontStyle]::Bold)
-    $lbl.ForeColor = $cAccent2
-    $lbl.Location = New-Object Drawing.Point(10, $y)
-    $lbl.Size = New-Object Drawing.Size(200, 20)
-    $scrollRepair.Controls.Add($lbl)
-}
-
-function New-UIButton($texto, $cmd, $x, $y) {
-    $btn = New-Object Windows.Forms.Button
-    $btn.Text = $texto
-    $btn.Size = New-Object Drawing.Size(170, 45)
-    $btn.Location = New-Object Drawing.Point($x, $y)
-    $btn.BackColor = $cBtn
-    $btn.FlatStyle = "Flat"
-    $btn.FlatAppearance.BorderColor = $cAccent
-    $btn.Cursor = "Hand"
-    $btn.Add_Click({ Run-Cmd-BG $cmd $texto })
-    $scrollRepair.Controls.Add($btn)
-}
-
-# --- Bloque Limpieza ---
-New-UIBlock "Limpieza" 15
-New-UIButton "Limpiar Temporales" 'Remove-Item "$env:TEMP\*" -Recurse -Force -EA SilentlyContinue' 10 40
-New-UIButton "Limpiar Prefetch" 'Remove-Item "C:\Windows\Prefetch\*" -Recurse -Force -EA SilentlyContinue' 190 40
-
-# --- Bloque Reparación Windows ---
-New-UIBlock "Reparación de Windows" 105
-New-UIButton "SFC /scannow" 'sfc /scannow' 10 130
-New-UIButton "DISM RestoreHealth" 'DISM /Online /Cleanup-Image /RestoreHealth' 190 130
-New-UIButton "CheckDisk (C:)" 'chkdsk C: /f' 370 130
-
-# --- Bloque Red ---
-New-UIBlock "Red" 195
-New-UIButton "DNS Flush" 'ipconfig /flushdns' 10 220
-New-UIButton "Reset Red (netsh)" 'netsh int ip reset; netsh winsock reset' 190 220
-New-UIButton "Ver Puertos" 'netstat -ano' 370 220
-New-UIButton "Matar Puerto 80" 'Stop-Process -Id (Get-NetTCPConnection -LocalPort 80).OwningProcess -Force' 550 220
-
-# ============================================================
-#   PANEL INFERIOR: MONITOREO Y ACCIONES RÁPIDAS
+#   PANEL INFERIOR COMPLETO (Estructura de Bloques del Footer)
 # ============================================================
 $footerPanel = New-Object Windows.Forms.Panel
-$footerPanel.Location = New-Object Drawing.Point(12, 565)
-$footerPanel.Size     = New-Object Drawing.Size(1240, 140)
+$footerPanel.Location = New-Object Drawing.Point(18, 545)
+$footerPanel.Size     = New-Object Drawing.Size(1228, 145)
 $footerPanel.Anchor   = "Bottom, Left, Right"
 $form.Controls.Add($footerPanel)
 
-function New-FooterGroup($titulo, $x, $w) {
+function New-FooterCard($titulo, $x, $w) {
     $pnl = New-Object Windows.Forms.Panel
     $pnl.Location = New-Object Drawing.Point($x, 0)
-    $pnl.Size     = New-Object Drawing.Size($w, 140)
-    $pnl.BackColor = $cPanel
+    $pnl.Size     = New-Object Drawing.Size($w, 135)
+    $pnl.BackColor = $cBg
     
+    # Borde sutil superior/lateral simulando contenedor
     $lbl = New-Object Windows.Forms.Label
     $lbl.Text = $titulo
-    $lbl.Font = New-Object Drawing.Font("Segoe UI", 8.5, [Drawing.FontStyle]::Bold)
+    $lbl.Font = New-Object Drawing.Font("Segoe UI", 9, [Drawing.FontStyle]::Bold)
     $lbl.ForeColor = $cAccent2
-    $lbl.Location = New-Object Drawing.Point(10, 5)
-    $lbl.Size = New-Object Drawing.Size(($w - 20), 15)
+    $lbl.Location = New-Object Drawing.Point(0, 0)
+    $lbl.Size = New-Object Drawing.Size($w, 20)
     $pnl.Controls.Add($lbl)
     
     $footerPanel.Controls.Add($pnl)
@@ -279,85 +253,107 @@ function New-FooterGroup($titulo, $x, $w) {
 }
 
 # 1. Información Rápida (Métricas en tiempo real)
-$pnlInfo = New-FooterGroup "Información rápida" 0 350
+$cardInfo = New-FooterCard "Información rápida" 0 300
 $lblCPU = New-Object Windows.Forms.Label
-$lblCPU.Text = "CPU Uso: 3%      RAM Uso: 36%"
-$lblCPU.Location = New-Object Drawing.Point(10, 30)
-$lblCPU.Size = New-Object Drawing.Size(330, 20)
-$pnlInfo.Controls.Add($lblCPU)
+$lblCPU.Text = "CPU Uso            3%`r`nRAM Uso          36%"
+$lblCPU.Font = New-Object Drawing.Font("Segoe UI", 9.5)
+$lblCPU.Location = New-Object Drawing.Point(5, 25)
+$lblCPU.Size = New-Object Drawing.Size(280, 40)
+$cardInfo.Controls.Add($lblCPU)
 
-$lblDisco = New-Object Windows.Forms.Label
-$lblDisco.Text = "Disco (C:): 42% Libre: 222 GB"
-$lblDisco.Location = New-Object Drawing.Point(10, 60)
-$lblDisco.Size = New-Object Drawing.Size(330, 20)
-$pnlInfo.Controls.Add($lblDisco)
+$lblDsk = New-Object Windows.Forms.Label
+$lblDsk.Text = "Disco (C:)        42%   Libre: 222 GB`r`nRed                 0.0 Mbps"
+$lblDsk.Font = New-Object Drawing.Font("Segoe UI", 9.5)
+$lblDsk.Location = New-Object Drawing.Point(5, 75)
+$lblDsk.Size = New-Object Drawing.Size(280, 40)
+$cardInfo.Controls.Add($lblDsk)
 
-# 2. Accesos Rápidos
-$pnlAcceso = New-FooterGroup "Accesos rápidos" 365 350
-function New-QuickLaunch($txt, $cmd, $x, $y) {
+# 2. Accesos Rápidos (Botones pequeños alineados en grilla)
+$cardLaunch = New-FooterCard "Accesos rápidos" 320 380
+function New-GridLaunch($txt, $cmd, $x, $y) {
     $btn = New-Object Windows.Forms.Button
-    $btn.Text = $txt
-    $btn.Size = New-Object Drawing.Size(100, 30)
+    $btn.Text = "  $txt"
+    $btn.TextAlign = "MiddleLeft"
+    $btn.Size = New-Object Drawing.Size(115, 32)
     $btn.Location = New-Object Drawing.Point($x, $y)
-    $btn.BackColor = $cBg
+    $btn.BackColor = $cBtn
     $btn.FlatStyle = "Flat"
-    $btn.Font = New-Object Drawing.Font("Segoe UI", 7.5)
+    $btn.FlatAppearance.BorderColor = $cPanel
+    $btn.Font = New-Object Drawing.Font("Segoe UI", 8.5)
     $btn.Add_Click({ Start-Process $cmd })
-    $pnlAcceso.Controls.Add($btn)
+    $cardLaunch.Controls.Add($btn)
 }
-New-QuickLaunch "Explorador" "explorer.exe" 10 30
-New-QuickLaunch "Admin Disp." "devmgmt.msc" 120 30
-New-QuickLaunch "Admin Discos" "diskmgmt.msc" 230 30
-New-QuickLaunch "Servicios" "services.msc" 10 75
-New-QuickLaunch "Eventos" "eventvwr.msc" 120 75
-New-QuickLaunch "Panel Control" "control.exe" 230 75
+New-GridLaunch "Explorador" "explorer.exe" 0 25
+New-GridLaunch "Admin. disp." "devmgmt.msc" 125 25
+New-GridLaunch "Administración`nde discos" "diskmgmt.msc" 250 25
+New-GridLaunch "Servicios" "services.msc" 0 75
+New-GridLaunch "Eventos" "eventvwr.msc" 125 75
+New-GridLaunch "Panel de control" "control.exe" 250 75
 
 # 3. Acciones Rápidas
-$pnlAcciones = New-FooterGroup "Acciones rápidas" 730 350
-function New-QuickAction($txt, $script, $x, $y) {
+$cardActions = New-FooterCard "Acciones rápidas" 720 300
+function New-GridAction($txt, $script, $x, $y) {
     $btn = New-Object Windows.Forms.Button
     $btn.Text = $txt
-    $btn.Size = New-Object Drawing.Size(150, 35)
+    $btn.Size = New-Object Drawing.Size(135, 35)
     $btn.Location = New-Object Drawing.Point($x, $y)
-    $btn.BackColor = $cCard
+    $btn.BackColor = $cBtn
     $btn.FlatStyle = "Flat"
+    $btn.FlatAppearance.BorderColor = $cPanel
+    $btn.Font = New-Object Drawing.Font("Segoe UI", 8.5)
     $btn.Add_Click($script)
-    $pnlAcciones.Controls.Add($btn)
+    $cardActions.Controls.Add($btn)
 }
-New-QuickAction "Reiniciar Explorer" { Stop-Process -Name explorer -Force } 10 30
-New-QuickAction "Liberar Memoria" { [System.GC]::Collect(); Write-Out "Memoria RAM optimizada." $cGreen } 170 30
-New-QuickAction "Limpiar Portapapeles" { [Windows.Forms.Clipboard]::Clear(); Write-Out "Portapapeles limpio." } 10 80
-New-QuickAction "Crear Punto Rest." { Checkpoint-Computer -Description "SysCodiManual" -RestorePointType "MODIFY_SETTINGS" } 170 80
+New-GridAction "Reiniciar Explorer" { Stop-Process -Name explorer -Force } 0 25
+New-GridAction "Liberar memoria" { [System.GC]::Collect() } 145 25
+New-GridAction "Limpiar`nPortapapeles" { [Windows.Forms.Clipboard]::Clear() } 0 75
+New-GridAction "Crear Punto de`nRestauración" { Checkpoint-Computer -Description "SysCodiManual" } 145 75
 
-# 4. Estado
-$pnlEstado = New-FooterGroup "Estado" 1095 145
-$lblCheck = New-Object Windows.Forms.Label
-$lblCheck.Text = "Todo correcto"
-$lblCheck.ForeColor = $cGreen
-$lblCheck.Font = New-Object Drawing.Font("Segoe UI", 9, [Drawing.FontStyle]::Bold)
-$lblCheck.Location = New-Object Drawing.Point(10, 40)
-$lblCheck.Size = New-Object Drawing.Size(125, 20)
-$lblCheck.TextAlign = "MiddleCenter"
-$pnlEstado.Controls.Add($lblCheck)
+# 4. Estado (Lado derecho inferior)
+$cardStatus = New-FooterCard "Estado" 1040 180
+$lblStatusText = New-Object Windows.Forms.Label
+$lblStatusText.Text = "Todo correcto"
+$lblStatusText.ForeColor = $cGreen
+$lblStatusText.Font = New-Object Drawing.Font("Segoe UI", 10, [Drawing.FontStyle]::Bold)
+$lblStatusText.Location = New-Object Drawing.Point(0, 30)
+$lblStatusText.Size = New-Object Drawing.Size(180, 25)
+$lblStatusText.TextAlign = "MiddleCenter"
+$cardStatus.Controls.Add($lblStatusText)
 
 $btnVerify = New-Object Windows.Forms.Button
 $btnVerify.Text = "Verificar sistema"
-$btnVerify.Location = New-Object Drawing.Point(10, 80)
-$btnVerify.Size = New-Object Drawing.Size(125, 30)
-$btnVerify.BackColor = $cBg
+$btnVerify.Size = New-Object Drawing.Size(140, 35)
+$btnVerify.Location = New-Object Drawing.Point(20, 65)
+$btnVerify.BackColor = $cBtn
 $btnVerify.FlatStyle = "Flat"
-$pnlEstado.Controls.Add($btnVerify)
+$btnVerify.FlatAppearance.BorderColor = $cAccent
+$cardStatus.Controls.Add($btnVerify)
 
 # ============================================================
-#   CREDITS & RUN
+#   BARRA DE PIE DE PÁGINA (Créditos)
 # ============================================================
+$footerBar = New-Object Windows.Forms.Panel
+$footerBar.Location = New-Object Drawing.Point(0, 700)
+$footerBar.Size     = New-Object Drawing.Size(1264, 25)
+$footerBar.Anchor   = "Bottom, Left, Right"
+$form.Controls.Add($footerBar)
+
+$lblWarn = New-Object Windows.Forms.Label
+$lblWarn.Text = " Ejecutar siempre como Administrador para mejor rendimiento"
+$lblWarn.Font = New-Object Drawing.Font("Segoe UI", 8.5)
+$lblWarn.ForeColor = $cSubText
+$lblWarn.Location = New-Object Drawing.Point(18, 0)
+$lblWarn.Size = New-Object Drawing.Size(400, 20)
+$footerBar.Controls.Add($lblWarn)
+
 $lblDev = New-Object Windows.Forms.Label
-$lblDev.Text = "Desarrollado por SysCodi  |  Versión 2.5.0 Pro"
-$lblDev.Location = New-Object Drawing.Point(12, 715)
-$lblDev.Size = New-Object Drawing.Size(1240, 20)
+$lblDev.Text = "Desarrollado por SysCodi      Versión 2.5.0 Pro "
+$lblDev.Font = New-Object Drawing.Font("Segoe UI", 8.5)
 $lblDev.ForeColor = $cSubText
+$lblDev.Location = New-Object Drawing.Point(840, 0)
+$lblDev.Size = New-Object Drawing.Size(400, 20)
 $lblDev.TextAlign = "TopRight"
-$lblDev.Anchor = "Bottom, Left, Right"
-$form.Controls.Add($lblDev)
+$footerBar.Controls.Add($lblDev)
 
+# Desplegar la interfaz
 $form.ShowDialog()
