@@ -829,32 +829,52 @@ $b2.Add_Click({
     Write-Out "Proceso PID $pid terminado." $cGreen
 })
 
-# Timer para metricas
-$prevBytes = 0
+# ── Runspace para métricas en segundo plano (no bloquea la UI) ──
+$script:metricsData = [hashtable]::Synchronized(@{ cpu=0; ram=0; disk=0; net=0 })
+
+$rsPool = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspacePool(1, 2)
+$rsPool.ApartmentState = "MTA"
+$rsPool.Open()
+
+function Start-MetricsJob {
+    $ps = [System.Management.Automation.PowerShell]::Create()
+    $ps.RunspacePool = $rsPool
+    [void]$ps.AddScript({
+        param($data)
+        while ($true) {
+            try {
+                $w = Get-WmiObject Win32_Processor
+                $data.cpu = [math]::Round($w.LoadPercentage, 0)
+            } catch {}
+            try {
+                $o = Get-WmiObject Win32_OperatingSystem
+                $data.ram = [math]::Round(100 - ($o.FreePhysicalMemory / $o.TotalVisibleMemorySize * 100), 0)
+            } catch {}
+            try {
+                $d = Get-PSDrive C -ErrorAction SilentlyContinue
+                if ($d) { $data.disk = [math]::Round($d.Used / ($d.Used + $d.Free) * 100, 0) }
+            } catch {}
+            try {
+                $n = Get-WmiObject Win32_PerfFormattedData_Tcpip_NetworkInterface -ErrorAction SilentlyContinue
+                if ($n) { $data.net = [math]::Round(($n | Measure-Object BytesReceivedPerSec -Sum).Sum / 1KB, 1) }
+            } catch {}
+            Start-Sleep -Seconds 2
+        }
+    })
+    [void]$ps.AddParameter("data", $script:metricsData)
+    [void]$ps.BeginInvoke()
+}
+Start-MetricsJob
+
+# Timer solo lee el hashtable compartido — instantáneo, sin bloqueo
 $timerDash = New-Object Windows.Forms.Timer
-$timerDash.Interval = 3000
+$timerDash.Interval = 2000
 $timerDash.Add_Tick({
     try {
-        $cpu = 0
-        try { $cpu = [math]::Round((Get-WmiObject Win32_Processor).LoadPercentage, 0) } catch {}
-
-        $ramP = 0
-        try {
-            $osM  = Get-WmiObject Win32_OperatingSystem
-            $ramP = [math]::Round(100 - ($osM.FreePhysicalMemory / $osM.TotalVisibleMemorySize * 100), 0)
-        } catch {}
-
-        $dskP = 0
-        try {
-            $dsk  = Get-PSDrive C -ErrorAction SilentlyContinue
-            if ($dsk) { $dskP = [math]::Round($dsk.Used / ($dsk.Used + $dsk.Free) * 100, 0) }
-        } catch {}
-
-        $kbps = 0
-        try {
-            $netStats = Get-WmiObject Win32_PerfFormattedData_Tcpip_NetworkInterface -ErrorAction SilentlyContinue
-            if ($netStats) { $kbps = [math]::Round(($netStats | Measure-Object -Property BytesReceivedPerSec -Sum).Sum / 1KB, 1) }
-        } catch {}
+        $cpu  = $script:metricsData.cpu
+        $ramP = $script:metricsData.ram
+        $dskP = $script:metricsData.disk
+        $kbps = $script:metricsData.net
 
         $lblCPU.Text  = "$cpu%"
         $lblRAM.Text  = "$ramP%"
@@ -1034,22 +1054,15 @@ $timerQuick = New-Object Windows.Forms.Timer
 $timerQuick.Interval = 3000
 $timerQuick.Add_Tick({
     try {
-        $c  = 0
-        try { $c = (Get-WmiObject Win32_Processor).LoadPercentage } catch {}
-        $r  = 0
-        try {
-            $oQ = Get-WmiObject Win32_OperatingSystem
-            $r  = [math]::Round(100 - ($oQ.FreePhysicalMemory / $oQ.TotalVisibleMemorySize * 100), 0)
-        } catch {}
+        $c  = $script:metricsData.cpu
+        $r  = $script:metricsData.ram
+        $d  = Get-PSDrive C -ErrorAction SilentlyContinue
         $dp = 0; $df = 0
-        try {
-            $d  = Get-PSDrive C -ErrorAction SilentlyContinue
-            if ($d) { $dp = [math]::Round($d.Used/($d.Used+$d.Free)*100,0); $df = [math]::Round($d.Free/1GB,0) }
-        } catch {}
+        if ($d) { $dp = [math]::Round($d.Used/($d.Used+$d.Free)*100,0); $df = [math]::Round($d.Free/1GB,0) }
         $lblCPUQ.Text  = "CPU Uso: $c%"
         $lblRAMQ.Text  = "RAM Uso: $r%"
         $lblDiskQ.Text = "Disco C: $dp% | Libre: ${df}GB"
-        $lblNetQ.Text  = "Red: Activa"
+        $lblNetQ.Text  = "Red: $($script:metricsData.net) KB/s"
     } catch {}
 })
 $timerQuick.Start()
@@ -1194,3 +1207,4 @@ $form.Controls.Add($footer)
 # ============================================================
 $form.ShowDialog()
 $timerClock.Stop(); $timerDash.Stop(); $timerQuick.Stop()
+try { $rsPool.Close(); $rsPool.Dispose() } catch {}
