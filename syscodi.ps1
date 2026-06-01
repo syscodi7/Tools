@@ -109,9 +109,13 @@ $header.Controls.Add($lblTime)
 $timerClock = New-Object Windows.Forms.Timer
 $timerClock.Interval = 1000
 $timerClock.Add_Tick({
-    $boot = (Get-CimInstance Win32_OperatingSystem).LastBootUpTime
-    $up   = (Get-Date) - $boot
-    $lblTime.Text = "Tiempo activo: $($up.Days)d $($up.Hours)h $($up.Minutes)m    Fecha: $(Get-Date -Format 'dd/MM/yyyy HH:mm:ss')"
+    try {
+        $boot = (Get-WmiObject Win32_OperatingSystem).LastBootUpTime
+        $up   = (Get-Date) - [Management.ManagementDateTimeConverter]::ToDateTime($boot)
+        $lblTime.Text = "Tiempo activo: $($up.Days)d $($up.Hours)h $($up.Minutes)m    Fecha: $(Get-Date -Format 'dd/MM/yyyy HH:mm:ss')"
+    } catch {
+        $lblTime.Text = "Fecha: $(Get-Date -Format 'dd/MM/yyyy HH:mm:ss')"
+    }
 })
 $timerClock.Start()
 
@@ -828,24 +832,38 @@ $b2.Add_Click({
 # Timer para metricas
 $prevBytes = 0
 $timerDash = New-Object Windows.Forms.Timer
-$timerDash.Interval = 2000
+$timerDash.Interval = 3000
 $timerDash.Add_Tick({
     try {
-        $cpu  = [math]::Round((Get-CimInstance Win32_Processor).LoadPercentage, 0)
-        $osM  = Get-CimInstance Win32_OperatingSystem
-        $ramP = [math]::Round(100 - ($osM.FreePhysicalMemory / $osM.TotalVisibleMemorySize * 100), 0)
-        $dsk  = Get-PSDrive C
-        $dskP = [math]::Round($dsk.Used / ($dsk.Used + $dsk.Free) * 100, 0)
-        $net  = (Get-NetAdapterStatistics | Measure-Object -Property ReceivedBytes -Sum).Sum
-        $kbps = if ($prevBytes -gt 0) { [math]::Round(($net - $prevBytes) / 2 / 1KB, 1) } else { 0 }
-        $script:prevBytes = $net
+        $cpu = 0
+        try { $cpu = [math]::Round((Get-WmiObject Win32_Processor).LoadPercentage, 0) } catch {}
+
+        $ramP = 0
+        try {
+            $osM  = Get-WmiObject Win32_OperatingSystem
+            $ramP = [math]::Round(100 - ($osM.FreePhysicalMemory / $osM.TotalVisibleMemorySize * 100), 0)
+        } catch {}
+
+        $dskP = 0
+        try {
+            $dsk  = Get-PSDrive C -ErrorAction SilentlyContinue
+            if ($dsk) { $dskP = [math]::Round($dsk.Used / ($dsk.Used + $dsk.Free) * 100, 0) }
+        } catch {}
+
+        $kbps = 0
+        try {
+            $netStats = Get-WmiObject Win32_PerfFormattedData_Tcpip_NetworkInterface -ErrorAction SilentlyContinue
+            if ($netStats) { $kbps = [math]::Round(($netStats | Measure-Object -Property BytesReceivedPerSec -Sum).Sum / 1KB, 1) }
+        } catch {}
+
         $lblCPU.Text  = "$cpu%"
         $lblRAM.Text  = "$ramP%"
         $lblDisk.Text = "$dskP%"
         $lblNet.Text  = "$kbps KB/s"
-        $lblCPU.ForeColor  = if ($cpu  -gt 80) { $cRed } elseif ($cpu  -gt 50) { $cYellow } else { $cGreen }
-        $lblRAM.ForeColor  = if ($ramP -gt 85) { $cRed } elseif ($ramP -gt 60) { $cYellow } else { $cGreen }
-        $lblDisk.ForeColor = if ($dskP -gt 90) { $cRed } elseif ($dskP -gt 70) { $cYellow } else { $cGreen }
+
+        if ($cpu  -gt 80) { $lblCPU.ForeColor  = $cRed } elseif ($cpu  -gt 50) { $lblCPU.ForeColor  = $cYellow } else { $lblCPU.ForeColor  = $cGreen }
+        if ($ramP -gt 85) { $lblRAM.ForeColor  = $cRed } elseif ($ramP -gt 60) { $lblRAM.ForeColor  = $cYellow } else { $lblRAM.ForeColor  = $cGreen }
+        if ($dskP -gt 90) { $lblDisk.ForeColor = $cRed } elseif ($dskP -gt 70) { $lblDisk.ForeColor = $cYellow } else { $lblDisk.ForeColor = $cGreen }
     } catch {}
 })
 $timerDash.Start()
@@ -1016,12 +1034,18 @@ $timerQuick = New-Object Windows.Forms.Timer
 $timerQuick.Interval = 3000
 $timerQuick.Add_Tick({
     try {
-        $c  = (Get-CimInstance Win32_Processor).LoadPercentage
-        $oQ = Get-CimInstance Win32_OperatingSystem
-        $r  = [math]::Round(100 - ($oQ.FreePhysicalMemory / $oQ.TotalVisibleMemorySize * 100),0)
-        $d  = Get-PSDrive C
-        $dp = [math]::Round($d.Used/($d.Used+$d.Free)*100,0)
-        $df = [math]::Round($d.Free/1GB,0)
+        $c  = 0
+        try { $c = (Get-WmiObject Win32_Processor).LoadPercentage } catch {}
+        $r  = 0
+        try {
+            $oQ = Get-WmiObject Win32_OperatingSystem
+            $r  = [math]::Round(100 - ($oQ.FreePhysicalMemory / $oQ.TotalVisibleMemorySize * 100), 0)
+        } catch {}
+        $dp = 0; $df = 0
+        try {
+            $d  = Get-PSDrive C -ErrorAction SilentlyContinue
+            if ($d) { $dp = [math]::Round($d.Used/($d.Used+$d.Free)*100,0); $df = [math]::Round($d.Free/1GB,0) }
+        } catch {}
         $lblCPUQ.Text  = "CPU Uso: $c%"
         $lblRAMQ.Text  = "RAM Uso: $r%"
         $lblDiskQ.Text = "Disco C: $dp% | Libre: ${df}GB"
