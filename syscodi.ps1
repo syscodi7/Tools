@@ -1,1210 +1,1134 @@
+#Requires -Version 5.1
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
 # ============================================================
-#   LOGO - Descarga desde GitHub
+#   VERIFICACION DE ADMINISTRADOR
+# ============================================================
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+if (-not $isAdmin) {
+    $res = [Windows.Forms.MessageBox]::Show("SysCodi WinTool Pro requiere permisos de Administrador.`n`nDesea reiniciar como Administrador?","Permisos requeridos","YesNo","Warning")
+    if ($res -eq "Yes") { Start-Process powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs }
+    exit
+}
+
+# ============================================================
+#   LOGS
+# ============================================================
+$logDir = "C:\SysCodi\logs"
+if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
+$logFile = "$logDir\$(Get-Date -Format 'yyyy-MM-dd').log"
+function Write-Log($msg) { Add-Content -Path $logFile -Value "[$(Get-Date -Format 'HH:mm:ss')] $msg" -Encoding UTF8 -EA SilentlyContinue }
+
+# ============================================================
+#   LOGO
 # ============================================================
 $logoUrl  = "https://raw.githubusercontent.com/syscodi7/Tools/main/sis.png"
 $logoPath = "$env:TEMP\syscodi_logo.png"
-try { Invoke-WebRequest -Uri $logoUrl -OutFile $logoPath -ErrorAction Stop } catch { $logoPath = "" }
+try { Invoke-WebRequest -Uri $logoUrl -OutFile $logoPath -EA Stop } catch { $logoPath = "" }
 
 # ============================================================
-#   COLORES CORPORATIVOS
+#   PALETA DE COLORES (replica exacta de la imagen)
 # ============================================================
-$cBg      = [Drawing.Color]::FromArgb(10, 18, 40)
-$cPanel   = [Drawing.Color]::FromArgb(18, 30, 62)
-$cCard    = [Drawing.Color]::FromArgb(22, 40, 80)
-$cAccent  = [Drawing.Color]::FromArgb(0, 120, 215)
-$cAccent2 = [Drawing.Color]::FromArgb(0, 180, 255)
-$cText    = [Drawing.Color]::White
-$cSubText = [Drawing.Color]::FromArgb(160, 200, 255)
-$cBtn     = [Drawing.Color]::FromArgb(0, 90, 170)
-$cBtnHov  = [Drawing.Color]::FromArgb(0, 130, 210)
-$cOutput  = [Drawing.Color]::FromArgb(8, 15, 35)
-$cGreen   = [Drawing.Color]::FromArgb(0, 210, 120)
-$cYellow  = [Drawing.Color]::FromArgb(255, 210, 60)
-$cRed     = [Drawing.Color]::FromArgb(255, 80, 80)
+$cBg       = [Drawing.Color]::FromArgb(11, 20, 42)
+$cPanel    = [Drawing.Color]::FromArgb(18, 32, 65)
+$cCard     = [Drawing.Color]::FromArgb(22, 40, 82)
+$cCardHov  = [Drawing.Color]::FromArgb(28, 52, 105)
+$cAccent   = [Drawing.Color]::FromArgb(0, 140, 255)
+$cAccent2  = [Drawing.Color]::FromArgb(80, 180, 255)
+$cGreen    = [Drawing.Color]::FromArgb(40, 220, 120)
+$cYellow   = [Drawing.Color]::FromArgb(255, 195, 50)
+$cRed      = [Drawing.Color]::FromArgb(255, 75, 75)
+$cText     = [Drawing.Color]::White
+$cSubText  = [Drawing.Color]::FromArgb(150, 185, 235)
+$cBorder   = [Drawing.Color]::FromArgb(30, 65, 130)
+$cTabActive= [Drawing.Color]::FromArgb(22, 50, 100)
+$cOutput   = [Drawing.Color]::FromArgb(8, 16, 36)
 
 # ============================================================
 #   FORMULARIO PRINCIPAL
 # ============================================================
 $form = New-Object Windows.Forms.Form
 $form.Text            = "SysCodi WinTool Pro"
-$form.Size            = New-Object Drawing.Size(1200, 720)
+$form.Size            = New-Object Drawing.Size(1366, 900)
+$form.MinimumSize     = New-Object Drawing.Size(1200, 780)
 $form.StartPosition   = "CenterScreen"
 $form.BackColor       = $cBg
 $form.ForeColor       = $cText
 $form.Font            = New-Object Drawing.Font("Segoe UI", 9)
-$form.FormBorderStyle = "FixedSingle"
-$form.MaximizeBox     = $false
+$form.FormBorderStyle = "Sizable"
 
 # ============================================================
-#   HEADER
+#   HEADER (replica imagen: logo + título + info sistema derecha)
 # ============================================================
 $header = New-Object Windows.Forms.Panel
-$header.Size      = New-Object Drawing.Size(1200, 65)
-$header.Location  = New-Object Drawing.Point(0, 0)
+$header.Dock      = "Top"
+$header.Height    = 90
 $header.BackColor = $cPanel
 $form.Controls.Add($header)
 
-$titleX = 15
-if ($logoPath -and (Test-Path $logoPath)) {
-    $logoPic          = New-Object Windows.Forms.PictureBox
-    $logoPic.Location = New-Object Drawing.Point(10, 7)
-    $logoPic.Size     = New-Object Drawing.Size(48, 48)
-    $logoPic.SizeMode = "Zoom"
-    $logoPic.BackColor= $cPanel
-    $logoPic.Image    = [Drawing.Image]::FromFile($logoPath)
-    $header.Controls.Add($logoPic)
-    try {
-        $bmp = [Drawing.Bitmap][Drawing.Image]::FromFile($logoPath)
-        $form.Icon = [Drawing.Icon]::FromHandle($bmp.GetHicon())
-    } catch {}
-    $titleX = 68
-}
+# Linea azul inferior del header
+$headerLine = New-Object Windows.Forms.Panel
+$headerLine.Dock      = "Bottom"
+$headerLine.Height    = 2
+$headerLine.BackColor = $cAccent
+$header.Controls.Add($headerLine)
 
-$lblTitle          = New-Object Windows.Forms.Label
-$lblTitle.Text     = "SysCodi WinTool Pro"
-$lblTitle.Font     = New-Object Drawing.Font("Segoe UI", 15, [Drawing.FontStyle]::Bold)
-$lblTitle.ForeColor= $cAccent2
-$lblTitle.Location = New-Object Drawing.Point($titleX, 10)
-$lblTitle.Size     = New-Object Drawing.Size(420, 30)
+# Logo
+if (Test-Path $logoPath) {
+    $logoPic = New-Object Windows.Forms.PictureBox
+    $logoPic.Location  = New-Object Drawing.Point(18, 15)
+    $logoPic.Size      = New-Object Drawing.Size(60, 60)
+    $logoPic.SizeMode  = "Zoom"
+    $logoPic.BackColor = $cPanel
+    $logoPic.Image     = [Drawing.Image]::FromFile($logoPath)
+    $header.Controls.Add($logoPic)
+    try { $bmp = [Drawing.Bitmap][Drawing.Image]::FromFile($logoPath); $form.Icon = [Drawing.Icon]::FromHandle($bmp.GetHicon()) } catch {}
+    $txStart = 92
+} else { $txStart = 20 }
+
+# Titulo
+$lblTitle = New-Object Windows.Forms.Label
+$lblTitle.Location  = New-Object Drawing.Point($txStart, 14)
+$lblTitle.Size      = New-Object Drawing.Size(480, 40)
+$lblTitle.Font      = New-Object Drawing.Font("Segoe UI", 22, [Drawing.FontStyle]::Bold)
+$lblTitle.ForeColor = $cText
+# "SysCodi" en azul, "WinTool Pro" en blanco
 $header.Controls.Add($lblTitle)
 
-$lblSub            = New-Object Windows.Forms.Label
-$lblSub.Text       = "Utilidad de sistema avanzada para Windows"
-$lblSub.Font       = New-Object Drawing.Font("Segoe UI", 8)
-$lblSub.ForeColor  = $cSubText
-$lblSub.Location   = New-Object Drawing.Point($titleX, 42)
-$lblSub.Size       = New-Object Drawing.Size(420, 16)
+# Usar Paint para colorear "SysCodi" en azul
+$lblTitleBlue = New-Object Windows.Forms.Label
+$lblTitleBlue.Location  = New-Object Drawing.Point($txStart, 14)
+$lblTitleBlue.Size      = New-Object Drawing.Size(115, 40)
+$lblTitleBlue.Font      = New-Object Drawing.Font("Segoe UI", 22, [Drawing.FontStyle]::Bold)
+$lblTitleBlue.ForeColor = $cAccent2
+$lblTitleBlue.Text      = "SysCodi"
+$lblTitleBlue.BackColor = [Drawing.Color]::Transparent
+$header.Controls.Add($lblTitleBlue)
+
+$lblTitleW = New-Object Windows.Forms.Label
+$lblTitleW.Location  = New-Object Drawing.Point(($txStart + 115), 14)
+$lblTitleW.Size      = New-Object Drawing.Size(280, 40)
+$lblTitleW.Font      = New-Object Drawing.Font("Segoe UI", 22, [Drawing.FontStyle]::Bold)
+$lblTitleW.ForeColor = $cText
+$lblTitleW.Text      = " WinTool Pro"
+$lblTitleW.BackColor = [Drawing.Color]::Transparent
+$header.Controls.Add($lblTitleW)
+
+$lblSub = New-Object Windows.Forms.Label
+$lblSub.Location  = New-Object Drawing.Point($txStart, 56)
+$lblSub.Size      = New-Object Drawing.Size(400, 20)
+$lblSub.Font      = New-Object Drawing.Font("Segoe UI", 9)
+$lblSub.ForeColor = $cSubText
+$lblSub.Text      = "Utilidad de sistema avanzada para Windows"
 $header.Controls.Add($lblSub)
 
-# Info del sistema en header (derecha)
-$os = Get-CimInstance Win32_OperatingSystem
-$lblOS          = New-Object Windows.Forms.Label
-$lblOS.Text     = "$($os.Caption) $($os.BuildNumber)"
-$lblOS.Font     = New-Object Drawing.Font("Segoe UI", 9, [Drawing.FontStyle]::Bold)
-$lblOS.ForeColor= $cAccent2
-$lblOS.Location = New-Object Drawing.Point(760, 8)
-$lblOS.Size     = New-Object Drawing.Size(430, 18)
-$header.Controls.Add($lblOS)
+# Info sistema derecha del header
+$pnlHeaderInfo = New-Object Windows.Forms.Panel
+$pnlHeaderInfo.Location  = New-Object Drawing.Point(700, 10)
+$pnlHeaderInfo.Size      = New-Object Drawing.Size(640, 70)
+$pnlHeaderInfo.BackColor = [Drawing.Color]::Transparent
+$header.Controls.Add($pnlHeaderInfo)
 
-$lblUser          = New-Object Windows.Forms.Label
-$lblUser.Text     = "Usuario: $env:USERNAME        Equipo: $env:COMPUTERNAME"
-$lblUser.Font     = New-Object Drawing.Font("Segoe UI", 8)
-$lblUser.ForeColor= $cText
-$lblUser.Location = New-Object Drawing.Point(760, 28)
-$lblUser.Size     = New-Object Drawing.Size(430, 16)
-$header.Controls.Add($lblUser)
-
-$lblTime          = New-Object Windows.Forms.Label
-$lblTime.Text     = "Tiempo activo: --    Fecha: $(Get-Date -Format 'dd/MM/yyyy HH:mm:ss')"
-$lblTime.Font     = New-Object Drawing.Font("Segoe UI", 8)
-$lblTime.ForeColor= $cSubText
-$lblTime.Location = New-Object Drawing.Point(760, 46)
-$lblTime.Size     = New-Object Drawing.Size(430, 16)
-$header.Controls.Add($lblTime)
-
-# Timer para actualizar fecha/hora
-$timerClock = New-Object Windows.Forms.Timer
-$timerClock.Interval = 1000
-$timerClock.Add_Tick({
-    try {
-        $boot = (Get-WmiObject Win32_OperatingSystem).LastBootUpTime
-        $up   = (Get-Date) - [Management.ManagementDateTimeConverter]::ToDateTime($boot)
-        $lblTime.Text = "Tiempo activo: $($up.Days)d $($up.Hours)h $($up.Minutes)m    Fecha: $(Get-Date -Format 'dd/MM/yyyy HH:mm:ss')"
-    } catch {
-        $lblTime.Text = "Fecha: $(Get-Date -Format 'dd/MM/yyyy HH:mm:ss')"
-    }
-})
-$timerClock.Start()
-
-# ============================================================
-#   TAB CONTROL
-# ============================================================
-$tabs              = New-Object Windows.Forms.TabControl
-$tabs.Location     = New-Object Drawing.Point(5, 68)
-$tabs.Size         = New-Object Drawing.Size(730, 520)
-$tabs.BackColor    = $cBg
-$tabs.Appearance   = "FlatButtons"
-$tabs.Font         = New-Object Drawing.Font("Segoe UI", 9, [Drawing.FontStyle]::Bold)
-$form.Controls.Add($tabs)
-
-function New-Tab($titulo) {
-    $t            = New-Object Windows.Forms.TabPage
-    $t.Text       = "  $titulo  "
-    $t.BackColor  = $cBg
-    $t.ForeColor  = $cText
-    $tabs.TabPages.Add($t)
-    return $t
+function New-HeaderLabel($text, $x, $y, $w, $h, $font, $color) {
+    $l = New-Object Windows.Forms.Label
+    $l.Text      = $text
+    $l.Location  = New-Object Drawing.Point($x, $y)
+    $l.Size      = New-Object Drawing.Size($w, $h)
+    $l.Font      = $font
+    $l.ForeColor = $color
+    $l.BackColor = [Drawing.Color]::Transparent
+    $pnlHeaderInfo.Controls.Add($l)
+    return $l
 }
 
-$tabRepair  = New-Tab "Reparacion"
-$tabApps    = New-Tab "Aplicaciones"
-$tabTweaks  = New-Tab "Tweaks"
-$tabUtils   = New-Tab "Utilidades"
-$tabTransf  = New-Tab "Transferencia"
-$tabSystem  = New-Tab "Sistema"
-$tabDash    = New-Tab "Dashboard"
-$tabReports = New-Tab "Reportes"
-$tabSettings= New-Tab "Ajustes"
+# Linea 1: OS
+$lblOS     = New-HeaderLabel "" 0 4 640 22 (New-Object Drawing.Font("Segoe UI", 10, [Drawing.FontStyle]::Bold)) $cAccent2
+# OS "Windows 11 Pro" en azul, version en blanco
+$lblOSVer  = New-HeaderLabel "" 145 4 300 22 (New-Object Drawing.Font("Segoe UI", 10)) $cText
+
+# Linea 2
+$lblUser   = New-HeaderLabel "" 0 28 200 18 (New-Object Drawing.Font("Segoe UI", 8.5)) $cSubText
+$lblUptime = New-HeaderLabel "" 330 28 300 18 (New-Object Drawing.Font("Segoe UI", 8.5)) $cSubText
+
+# Linea 3
+$lblEquipo = New-HeaderLabel "" 0 48 200 18 (New-Object Drawing.Font("Segoe UI", 8.5)) $cSubText
+$lblClock  = New-HeaderLabel "" 330 48 300 18 (New-Object Drawing.Font("Segoe UI", 8.5)) $cSubText
+
+# Cargar info del sistema
+try {
+    $osInfo   = Get-CimInstance Win32_OperatingSystem
+    $lblOS.Text    = "Windows"
+    $lblOSVer.Text = " $($osInfo.Caption.Replace('Microsoft ','')) ($($osInfo.BuildNumber))"
+    $lblUser.Text  = "Usuario:  $env:USERNAME"
+    $lblEquipo.Text= "Equipo:   $env:COMPUTERNAME"
+} catch {}
+
+$clockTimer = New-Object Windows.Forms.Timer
+$clockTimer.Interval = 1000
+$clockTimer.Add_Tick({
+    $lblClock.Text = "Fecha:  $(Get-Date -Format 'dd/MM/yyyy  HH:mm:ss')"
+    try {
+        $up = (Get-Date) - (Get-CimInstance Win32_OperatingSystem).LastBootUpTime
+        $lblUptime.Text = "Tiempo activo:  $($up.Days)d $($up.Hours)h $($up.Minutes)m"
+    } catch {}
+})
+$clockTimer.Start()
 
 # ============================================================
-#   PANEL DERECHO - CONSOLA
+#   BARRA DE TABS (replica: tabs con iconos, fondo panel)
 # ============================================================
-$rightPanel           = New-Object Windows.Forms.Panel
-$rightPanel.Location  = New-Object Drawing.Point(738, 68)
-$rightPanel.Size      = New-Object Drawing.Size(452, 520)
-$rightPanel.BackColor = $cOutput
-$form.Controls.Add($rightPanel)
+$pnlTabs = New-Object Windows.Forms.Panel
+$pnlTabs.Dock      = "Top"
+$pnlTabs.Height    = 50
+$pnlTabs.BackColor = $cPanel
+$form.Controls.Add($pnlTabs)
 
-$lblConsole           = New-Object Windows.Forms.Label
-$lblConsole.Text      = "  Consola de salida"
-$lblConsole.Location  = New-Object Drawing.Point(0, 0)
-$lblConsole.Size      = New-Object Drawing.Size(452, 28)
-$lblConsole.ForeColor = $cAccent2
-$lblConsole.BackColor = $cPanel
-$lblConsole.Font      = New-Object Drawing.Font("Segoe UI", 9, [Drawing.FontStyle]::Bold)
-$lblConsole.TextAlign = "MiddleLeft"
-$rightPanel.Controls.Add($lblConsole)
+# Linea inferior tabs
+$tabLine = New-Object Windows.Forms.Panel
+$tabLine.Dock      = "Bottom"
+$tabLine.Height    = 1
+$tabLine.BackColor = $cBorder
+$pnlTabs.Controls.Add($tabLine)
 
-$btnClearOutput           = New-Object Windows.Forms.Button
-$btnClearOutput.Text      = "Limpiar"
-$btnClearOutput.Location  = New-Object Drawing.Point(366, 3)
-$btnClearOutput.Size      = New-Object Drawing.Size(80, 22)
-$btnClearOutput.BackColor = $cBtn
-$btnClearOutput.ForeColor = $cText
-$btnClearOutput.FlatStyle = "Flat"
-$btnClearOutput.Font      = New-Object Drawing.Font("Segoe UI", 7)
-$rightPanel.Controls.Add($btnClearOutput)
+# Panel principal de contenido
+$pnlContent = New-Object Windows.Forms.Panel
+$pnlContent.Dock      = "Fill"
+$pnlContent.BackColor = $cBg
+$form.Controls.Add($pnlContent)
 
-$outputBox            = New-Object Windows.Forms.RichTextBox
-$outputBox.Location   = New-Object Drawing.Point(0, 30)
-$outputBox.Size       = New-Object Drawing.Size(452, 490)
-$outputBox.BackColor  = $cOutput
-$outputBox.ForeColor  = $cAccent2
-$outputBox.Font       = New-Object Drawing.Font("Consolas", 9)
-$outputBox.ReadOnly   = $true
-$outputBox.BorderStyle= "None"
-$outputBox.Text       = "  Listo. Selecciona una opcion y ejecuta."
-$rightPanel.Controls.Add($outputBox)
+# ============================================================
+#   FOOTER (replica: barra inferior con métricas + accesos)
+# ============================================================
+$footer = New-Object Windows.Forms.Panel
+$footer.Dock      = "Bottom"
+$footer.Height    = 175
+$footer.BackColor = $cPanel
+$form.Controls.Add($footer)
 
-$btnClearOutput.Add_Click({ $outputBox.Clear() })
+$footerLine = New-Object Windows.Forms.Panel
+$footerLine.Dock      = "Top"
+$footerLine.Height    = 1
+$footerLine.BackColor = $cBorder
+$footer.Controls.Add($footerLine)
+
+# Status bar (muy inferior)
+$statusBar = New-Object Windows.Forms.Panel
+$statusBar.Dock      = "Bottom"
+$statusBar.Height    = 26
+$statusBar.BackColor = [Drawing.Color]::FromArgb(8, 16, 36)
+$footer.Controls.Add($statusBar)
+
+$lblStatusLeft = New-Object Windows.Forms.Label
+$lblStatusLeft.Text      = "  Ejecutar siempre como Administrador para mejor rendimiento"
+$lblStatusLeft.Location  = New-Object Drawing.Point(0, 0)
+$lblStatusLeft.Size      = New-Object Drawing.Size(700, 26)
+$lblStatusLeft.ForeColor = $cSubText
+$lblStatusLeft.Font      = New-Object Drawing.Font("Segoe UI", 8)
+$lblStatusLeft.TextAlign = "MiddleLeft"
+$statusBar.Controls.Add($lblStatusLeft)
+
+$lblStatusRight = New-Object Windows.Forms.Label
+$lblStatusRight.Text      = "Desarrollado por SysCodi     Versión 2.5.0 Pro"
+$lblStatusRight.Location  = New-Object Drawing.Point(700, 0)
+$lblStatusRight.Size      = New-Object Drawing.Size(650, 26)
+$lblStatusRight.ForeColor = $cSubText
+$lblStatusRight.Font      = New-Object Drawing.Font("Segoe UI", 8)
+$lblStatusRight.TextAlign = "MiddleRight"
+$statusBar.Controls.Add($lblStatusRight)
+
+# ============================================================
+#   FOOTER CONTENT: 4 secciones
+# ============================================================
+$footerContent = New-Object Windows.Forms.Panel
+$footerContent.Dock      = "Fill"
+$footerContent.BackColor = $cPanel
+$footer.Controls.Add($footerContent)
+
+# --- Sección 1: Información rápida (métricas) ---
+$pnlMetrics = New-Object Windows.Forms.Panel
+$pnlMetrics.Location  = New-Object Drawing.Point(5, 8)
+$pnlMetrics.Size      = New-Object Drawing.Size(300, 138)
+$pnlMetrics.BackColor = $cCard
+$footerContent.Controls.Add($pnlMetrics)
+
+$lblMetTitle = New-Object Windows.Forms.Label
+$lblMetTitle.Text      = "Información rápida"
+$lblMetTitle.Location  = New-Object Drawing.Point(10, 6)
+$lblMetTitle.Size      = New-Object Drawing.Size(280, 18)
+$lblMetTitle.ForeColor = $cAccent2
+$lblMetTitle.Font      = New-Object Drawing.Font("Segoe UI", 9, [Drawing.FontStyle]::Bold)
+$pnlMetrics.Controls.Add($lblMetTitle)
+
+function New-MiniMetric($label, $icon, $x, $y, $parent) {
+    $p = New-Object Windows.Forms.Panel
+    $p.Location  = New-Object Drawing.Point($x, $y)
+    $p.Size      = New-Object Drawing.Size(130, 54)
+    $p.BackColor = [Drawing.Color]::FromArgb(15, 28, 58)
+    $parent.Controls.Add($p)
+
+    $lIcon = New-Object Windows.Forms.Label
+    $lIcon.Text      = $icon
+    $lIcon.Location  = New-Object Drawing.Point(4, 4)
+    $lIcon.Size      = New-Object Drawing.Size(20, 18)
+    $lIcon.ForeColor = $cAccent2
+    $lIcon.Font      = New-Object Drawing.Font("Segoe UI", 8)
+    $p.Controls.Add($lIcon)
+
+    $lName = New-Object Windows.Forms.Label
+    $lName.Text      = $label
+    $lName.Location  = New-Object Drawing.Point(22, 5)
+    $lName.Size      = New-Object Drawing.Size(100, 16)
+    $lName.ForeColor = $cSubText
+    $lName.Font      = New-Object Drawing.Font("Segoe UI", 7.5)
+    $p.Controls.Add($lName)
+
+    $lVal = New-Object Windows.Forms.Label
+    $lVal.Text      = "..."
+    $lVal.Location  = New-Object Drawing.Point(80, 3)
+    $lVal.Size      = New-Object Drawing.Size(45, 18)
+    $lVal.ForeColor = $cText
+    $lVal.Font      = New-Object Drawing.Font("Segoe UI", 9, [Drawing.FontStyle]::Bold)
+    $lVal.TextAlign = "MiddleRight"
+    $p.Controls.Add($lVal)
+
+    $bar = New-Object Windows.Forms.ProgressBar
+    $bar.Location  = New-Object Drawing.Point(4, 26)
+    $bar.Size      = New-Object Drawing.Size(122, 8)
+    $bar.Minimum   = 0
+    $bar.Maximum   = 100
+    $bar.Style     = "Continuous"
+    $bar.ForeColor = $cAccent2
+    $bar.BackColor = [Drawing.Color]::FromArgb(8, 16, 36)
+    $p.Controls.Add($bar)
+
+    $lExtra = New-Object Windows.Forms.Label
+    $lExtra.Text      = ""
+    $lExtra.Location  = New-Object Drawing.Point(4, 36)
+    $lExtra.Size      = New-Object Drawing.Size(122, 16)
+    $lExtra.ForeColor = $cSubText
+    $lExtra.Font      = New-Object Drawing.Font("Segoe UI", 7)
+    $p.Controls.Add($lExtra)
+
+    return @{panel=$p; val=$lVal; bar=$bar; extra=$lExtra}
+}
+
+$mCPU  = New-MiniMetric "CPU Uso"   "O" 8  28 $pnlMetrics
+$mRAM  = New-MiniMetric "RAM Uso"   "O" 152 28 $pnlMetrics
+$mDisk = New-MiniMetric "Disco (C:)" "O" 8  86 $pnlMetrics
+$mNet  = New-MiniMetric "Red"        "O" 152 86 $pnlMetrics
+
+# --- Sección 2: Accesos rápidos ---
+$pnlAccesos = New-Object Windows.Forms.Panel
+$pnlAccesos.Location  = New-Object Drawing.Point(312, 8)
+$pnlAccesos.Size      = New-Object Drawing.Size(370, 138)
+$pnlAccesos.BackColor = $cCard
+$footerContent.Controls.Add($pnlAccesos)
+
+$lblAccTitle = New-Object Windows.Forms.Label
+$lblAccTitle.Text      = "Accesos rápidos"
+$lblAccTitle.Location  = New-Object Drawing.Point(10, 6)
+$lblAccTitle.Size      = New-Object Drawing.Size(350, 18)
+$lblAccTitle.ForeColor = $cAccent2
+$lblAccTitle.Font      = New-Object Drawing.Font("Segoe UI", 9, [Drawing.FontStyle]::Bold)
+$pnlAccesos.Controls.Add($lblAccTitle)
+
+$accesos = @(
+    @{name="Explorador";              cmd={Start-Process explorer}},
+    @{name="Adm. dispositivos";       cmd={Start-Process devmgmt.msc}},
+    @{name="Adm. de discos";          cmd={Start-Process diskmgmt.msc}},
+    @{name="Servicios";               cmd={Start-Process services.msc}},
+    @{name="Eventos";                 cmd={Start-Process eventvwr.msc}},
+    @{name="Panel de control";        cmd={Start-Process control}}
+)
+
+$axPos = 8; $ayPos = 28; $aCol = 0
+foreach ($acc in $accesos) {
+    $btn = New-Object Windows.Forms.Button
+    $btn.Text      = $acc.name
+    $btn.Location  = New-Object Drawing.Point($axPos, $ayPos)
+    $btn.Size      = New-Object Drawing.Size(112, 48)
+    $btn.BackColor = [Drawing.Color]::FromArgb(15, 28, 58)
+    $btn.ForeColor = $cText
+    $btn.FlatStyle = "Flat"
+    $btn.FlatAppearance.BorderColor = $cBorder
+    $btn.FlatAppearance.BorderSize  = 1
+    $btn.Font      = New-Object Drawing.Font("Segoe UI", 7.5)
+    $btn.Cursor    = "Hand"
+    $accCmd = $acc.cmd
+    $btn.Add_Click($accCmd)
+    $btn.Add_MouseEnter({ $this.BackColor = $cCardHov })
+    $btn.Add_MouseLeave({ $this.BackColor = [Drawing.Color]::FromArgb(15, 28, 58) })
+    $pnlAccesos.Controls.Add($btn)
+    $aCol++
+    if ($aCol -ge 3) { $aCol = 0; $axPos = 8; $ayPos += 52 } else { $axPos += 116 }
+}
+
+# --- Sección 3: Acciones rápidas ---
+$pnlAcciones = New-Object Windows.Forms.Panel
+$pnlAcciones.Location  = New-Object Drawing.Point(690, 8)
+$pnlAcciones.Size      = New-Object Drawing.Size(380, 138)
+$pnlAcciones.BackColor = $cCard
+$footerContent.Controls.Add($pnlAcciones)
+
+$lblActTitle = New-Object Windows.Forms.Label
+$lblActTitle.Text      = "Acciones rápidas"
+$lblActTitle.Location  = New-Object Drawing.Point(10, 6)
+$lblActTitle.Size      = New-Object Drawing.Size(360, 18)
+$lblActTitle.ForeColor = $cAccent2
+$lblActTitle.Font      = New-Object Drawing.Font("Segoe UI", 9, [Drawing.FontStyle]::Bold)
+$pnlAcciones.Controls.Add($lblActTitle)
+
+$acciones = @(
+    @{name="Reiniciar Explorer";       cmd='Stop-Process -Name explorer -Force; Start-Process explorer'},
+    @{name="Liberar memoria";          cmd='[System.GC]::Collect(); [System.GC]::WaitForPendingFinalizers(); Write-Output "Memoria liberada"'},
+    @{name="Limpiar Portapapeles";     cmd='Set-Clipboard -Value ""; Write-Output "Portapapeles limpiado"'},
+    @{name="Crear Punto Restauracion"; cmd='Checkpoint-Computer -Description "SysCodi_$(Get-Date -Format yyyyMMdd_HHmmss)" -RestorePointType MODIFY_SETTINGS; Write-Output "Punto creado"'}
+)
+
+$aaX = 8; $aaY = 28; $aaCol = 0
+foreach ($act in $acciones) {
+    $btn = New-Object Windows.Forms.Button
+    $btn.Text      = $act.name
+    $btn.Location  = New-Object Drawing.Point($aaX, $aaY)
+    $btn.Size      = New-Object Drawing.Size(180, 46)
+    $btn.BackColor = [Drawing.Color]::FromArgb(15, 28, 58)
+    $btn.ForeColor = $cText
+    $btn.FlatStyle = "Flat"
+    $btn.FlatAppearance.BorderColor = $cBorder
+    $btn.FlatAppearance.BorderSize  = 1
+    $btn.Font      = New-Object Drawing.Font("Segoe UI", 8)
+    $btn.Cursor    = "Hand"
+    $actCmd = $act.cmd
+    $btn.Add_Click({
+        Run-Cmd-BG $actCmd $this.Text
+    })
+    $btn.Add_MouseEnter({ $this.BackColor = $cCardHov })
+    $btn.Add_MouseLeave({ $this.BackColor = [Drawing.Color]::FromArgb(15, 28, 58) })
+    $pnlAcciones.Controls.Add($btn)
+    $aaCol++
+    if ($aaCol -ge 2) { $aaCol = 0; $aaX = 8; $aaY += 50 } else { $aaX += 184 }
+}
+
+# --- Sección 4: Estado ---
+$pnlEstado = New-Object Windows.Forms.Panel
+$pnlEstado.Location  = New-Object Drawing.Point(1078, 8)
+$pnlEstado.Size      = New-Object Drawing.Size(165, 138)
+$pnlEstado.BackColor = $cCard
+$footerContent.Controls.Add($pnlEstado)
+
+$lblEstTitle = New-Object Windows.Forms.Label
+$lblEstTitle.Text      = "Estado"
+$lblEstTitle.Location  = New-Object Drawing.Point(10, 6)
+$lblEstTitle.Size      = New-Object Drawing.Size(145, 18)
+$lblEstTitle.ForeColor = $cAccent2
+$lblEstTitle.Font      = New-Object Drawing.Font("Segoe UI", 9, [Drawing.FontStyle]::Bold)
+$pnlEstado.Controls.Add($lblEstTitle)
+
+$lblEstIcon = New-Object Windows.Forms.Label
+$lblEstIcon.Text      = "v"
+$lblEstIcon.Location  = New-Object Drawing.Point(55, 30)
+$lblEstIcon.Size      = New-Object Drawing.Size(55, 50)
+$lblEstIcon.ForeColor = $cGreen
+$lblEstIcon.Font      = New-Object Drawing.Font("Wingdings", 30)
+$lblEstIcon.TextAlign = "MiddleCenter"
+$pnlEstado.Controls.Add($lblEstIcon)
+
+$lblEstText = New-Object Windows.Forms.Label
+$lblEstText.Text      = "Todo correcto"
+$lblEstText.Location  = New-Object Drawing.Point(10, 80)
+$lblEstText.Size      = New-Object Drawing.Size(145, 20)
+$lblEstText.ForeColor = $cGreen
+$lblEstText.Font      = New-Object Drawing.Font("Segoe UI", 9, [Drawing.FontStyle]::Bold)
+$lblEstText.TextAlign = "MiddleCenter"
+$pnlEstado.Controls.Add($lblEstText)
+
+$btnVerificar = New-Object Windows.Forms.Button
+$btnVerificar.Text      = "Verificar sistema"
+$btnVerificar.Location  = New-Object Drawing.Point(10, 105)
+$btnVerificar.Size      = New-Object Drawing.Size(145, 26)
+$btnVerificar.BackColor = [Drawing.Color]::FromArgb(15, 28, 58)
+$btnVerificar.ForeColor = $cText
+$btnVerificar.FlatStyle = "Flat"
+$btnVerificar.FlatAppearance.BorderColor = $cBorder
+$btnVerificar.Font      = New-Object Drawing.Font("Segoe UI", 8)
+$btnVerificar.Add_Click({
+    $lblEstText.Text      = "Verificando..."
+    $lblEstText.ForeColor = $cYellow
+    $lblEstIcon.ForeColor = $cYellow
+    [Windows.Forms.Application]::DoEvents()
+    Start-Sleep -Milliseconds 800
+    $lblEstText.Text      = "Todo correcto"
+    $lblEstText.ForeColor = $cGreen
+    $lblEstIcon.ForeColor = $cGreen
+    Write-Out "Verificacion completada: sistema OK" $cGreen
+})
+$pnlEstado.Controls.Add($btnVerificar)
+
+# ============================================================
+#   SISTEMA DE TABS PERSONALIZADO (replica imagen)
+# ============================================================
+$tabDefs = @(
+    @{name="Reparacion";    icon="✂"},
+    @{name="Aplicaciones";  icon="⊞"},
+    @{name="Tweaks";        icon="✱"},
+    @{name="Utilidades";    icon="⚙"},
+    @{name="Transferencia"; icon="⇄"},
+    @{name="Sistema";       icon="⬡"},
+    @{name="Dashboard";     icon="▦"},
+    @{name="Reportes";      icon="≡"},
+    @{name="Ajustes";       icon="⚙"}
+)
+
+$tabButtons   = @()
+$tabPanels    = @()
+$currentTab   = 0
+$tabX         = 5
+
+foreach ($td in $tabDefs) {
+    $tb = New-Object Windows.Forms.Button
+    $tb.Text      = "$($td.icon)  $($td.name)"
+    $tb.Location  = New-Object Drawing.Point($tabX, 6)
+    $tb.Size      = New-Object Drawing.Size(126, 38)
+    $tb.BackColor = $cPanel
+    $tb.ForeColor = $cSubText
+    $tb.FlatStyle = "Flat"
+    $tb.FlatAppearance.BorderSize  = 0
+    $tb.FlatAppearance.BorderColor = $cPanel
+    $tb.Font      = New-Object Drawing.Font("Segoe UI", 8.5)
+    $tb.Cursor    = "Hand"
+    $pnlTabs.Controls.Add($tb)
+    $tabButtons += $tb
+    $tabX += 130
+
+    $tp = New-Object Windows.Forms.Panel
+    $tp.Dock      = "Fill"
+    $tp.BackColor = $cBg
+    $tp.Visible   = $false
+    $pnlContent.Controls.Add($tp)
+    $tabPanels += $tp
+}
+
+function Switch-Tab($idx) {
+    for ($i = 0; $i -lt $tabButtons.Count; $i++) {
+        if ($i -eq $idx) {
+            $tabButtons[$i].BackColor = $cTabActive
+            $tabButtons[$i].ForeColor = $cAccent2
+            $tabPanels[$i].Visible    = $true
+            $tabPanels[$i].BringToFront()
+        } else {
+            $tabButtons[$i].BackColor = $cPanel
+            $tabButtons[$i].ForeColor = $cSubText
+            $tabPanels[$i].Visible    = $false
+        }
+    }
+    $script:currentTab = $idx
+}
+
+for ($i = 0; $i -lt $tabButtons.Count; $i++) {
+    $idx = $i
+    $tabButtons[$i].Add_Click({ Switch-Tab $idx })
+}
+
+# ============================================================
+#   CONSOLA COMPARTIDA (lado derecho, presente en todas las tabs)
+# ============================================================
+$pnlConsole = New-Object Windows.Forms.Panel
+$pnlConsole.Width     = 420
+$pnlConsole.Dock      = "Right"
+$pnlConsole.BackColor = $cOutput
+$pnlContent.Controls.Add($pnlConsole)
+
+$pnlConHdr = New-Object Windows.Forms.Panel
+$pnlConHdr.Dock      = "Top"
+$pnlConHdr.Height    = 34
+$pnlConHdr.BackColor = $cPanel
+$pnlConsole.Controls.Add($pnlConHdr)
+
+$lblConTitle = New-Object Windows.Forms.Label
+$lblConTitle.Text      = "  Consola de salida"
+$lblConTitle.Dock      = "Left"
+$lblConTitle.Width     = 260
+$lblConTitle.ForeColor = $cAccent2
+$lblConTitle.Font      = New-Object Drawing.Font("Segoe UI", 9, [Drawing.FontStyle]::Bold)
+$lblConTitle.TextAlign = "MiddleLeft"
+$pnlConHdr.Controls.Add($lblConTitle)
+
+$btnConClear = New-Object Windows.Forms.Button
+$btnConClear.Text      = "Limpiar"
+$btnConClear.Dock      = "Right"
+$btnConClear.Width     = 75
+$btnConClear.BackColor = [Drawing.Color]::FromArgb(0, 65, 120)
+$btnConClear.ForeColor = $cText
+$btnConClear.FlatStyle = "Flat"
+$btnConClear.Font      = New-Object Drawing.Font("Segoe UI", 7.5)
+$pnlConHdr.Controls.Add($btnConClear)
+
+$btnConSave = New-Object Windows.Forms.Button
+$btnConSave.Text      = "Guardar"
+$btnConSave.Dock      = "Right"
+$btnConSave.Width     = 75
+$btnConSave.BackColor = [Drawing.Color]::FromArgb(0, 65, 120)
+$btnConSave.ForeColor = $cText
+$btnConSave.FlatStyle = "Flat"
+$btnConSave.Font      = New-Object Drawing.Font("Segoe UI", 7.5)
+$pnlConHdr.Controls.Add($btnConSave)
+
+$outputBox = New-Object Windows.Forms.RichTextBox
+$outputBox.Dock        = "Fill"
+$outputBox.BackColor   = $cOutput
+$outputBox.ForeColor   = $cAccent2
+$outputBox.Font        = New-Object Drawing.Font("Consolas", 8.5)
+$outputBox.ReadOnly    = $true
+$outputBox.BorderStyle = "None"
+$outputBox.ScrollBars  = "Vertical"
+$pnlConsole.Controls.Add($outputBox)
+
+$btnConClear.Add_Click({ $outputBox.Clear(); Write-Out "Consola limpiada." $cSubText })
+$btnConSave.Add_Click({
+    $dlg = New-Object Windows.Forms.SaveFileDialog
+    $dlg.Filter = "Text files (*.txt)|*.txt"
+    $dlg.FileName = "SysCodi_log_$(Get-Date -Format 'yyyyMMdd_HHmmss').txt"
+    if ($dlg.ShowDialog() -eq "OK") { $outputBox.Text | Set-Content $dlg.FileName -Encoding UTF8; Write-Out "Log guardado: $($dlg.FileName)" $cGreen }
+})
 
 function Write-Out($msg, $color = $null) {
+    if ($null -eq $color) { $color = $cAccent2 }
     $outputBox.SelectionStart = $outputBox.TextLength
-    $outputBox.SelectionColor = if ($color) { $color } else { $cAccent2 }
+    $outputBox.SelectionColor = $color
     $outputBox.AppendText("`r`n $msg")
     $outputBox.ScrollToCaret()
+    Write-Log $msg
 }
 
-function Run-Cmd($cmd) {
-    Write-Out ">> $cmd" $cSubText
-    try {
-        $res = Invoke-Expression $cmd 2>&1
-        Write-Out ($res -join "`r`n") $cText
-    } catch {
-        Write-Out "Error: $_" $cRed
-    }
+function Write-Section($titulo) {
+    Write-Out ""
+    Write-Out "━━━ $titulo ━━━" $cAccent2
+}
+
+# Barra de progreso global
+$progressBar = New-Object Windows.Forms.ProgressBar
+$progressBar.Dock      = "Top"
+$progressBar.Height    = 4
+$progressBar.Style     = "Marquee"
+$progressBar.MarqueeAnimationSpeed = 0
+$progressBar.BackColor = $cPanel
+$pnlContent.Controls.Add($progressBar)
+
+function Start-Progress { $progressBar.MarqueeAnimationSpeed = 25; [Windows.Forms.Application]::DoEvents() }
+function Stop-Progress  { $progressBar.MarqueeAnimationSpeed = 0 }
+
+function Run-Cmd-BG($cmd, $label) {
+    Write-Out "Ejecutando: $label..." $cSubText
+    Start-Progress
+    $job = Start-Job -ScriptBlock { param($c) Invoke-Expression $c 2>&1 } -ArgumentList $cmd
+    $tmr = New-Object Windows.Forms.Timer
+    $tmr.Interval = 600
+    $tmr.Add_Tick({
+        if ($job.State -ne "Running") {
+            $tmr.Stop(); Stop-Progress
+            $res = Receive-Job $job; Remove-Job $job -Force
+            if ($res) {
+                $outputBox.SelectionStart = $outputBox.TextLength
+                $outputBox.SelectionColor = $cText
+                $outputBox.AppendText("`r`n " + ($res -join "`r`n "))
+                $outputBox.ScrollToCaret()
+            }
+            Write-Out "OK: $label" $cGreen
+        }
+    })
+    $tmr.Start()
 }
 
 # ============================================================
 #   HELPERS UI
 # ============================================================
-function New-Btn($texto, $x, $y, $w = 190, $h = 38, $parent = $null) {
-    $b                          = New-Object Windows.Forms.Button
-    $b.Text                     = $texto
-    $b.Location                 = New-Object Drawing.Point($x, $y)
-    $b.Size                     = New-Object Drawing.Size($w, $h)
-    $b.BackColor                = $cBtn
-    $b.ForeColor                = $cText
-    $b.FlatStyle                = "Flat"
-    $b.FlatAppearance.BorderColor = $cAccent
+function New-Btn($texto, $x, $y, $w = 190, $h = 44, $parent) {
+    $b = New-Object Windows.Forms.Button
+    $b.Text      = $texto
+    $b.Location  = New-Object Drawing.Point($x, $y)
+    $b.Size      = New-Object Drawing.Size($w, $h)
+    $b.BackColor = $cCard
+    $b.ForeColor = $cText
+    $b.FlatStyle = "Flat"
+    $b.FlatAppearance.BorderColor = $cBorder
     $b.FlatAppearance.BorderSize  = 1
-    $b.Font                     = New-Object Drawing.Font("Segoe UI", 9)
-    $b.Cursor                   = "Hand"
-    $b.Add_MouseEnter({ $this.BackColor = $cBtnHov })
-    $b.Add_MouseLeave({ $this.BackColor = $cBtn })
-    if ($parent) { $parent.Controls.Add($b) }
+    $b.Font      = New-Object Drawing.Font("Segoe UI", 8.5)
+    $b.Cursor    = "Hand"
+    $b.TextAlign = "MiddleCenter"
+    $b.Add_MouseEnter({ $this.BackColor = $cCardHov; $this.FlatAppearance.BorderColor = $cAccent })
+    $b.Add_MouseLeave({ $this.BackColor = $cCard; $this.FlatAppearance.BorderColor = $cBorder })
+    $parent.Controls.Add($b)
     return $b
 }
 
 function New-SecLabel($texto, $x, $y, $parent) {
-    $lbl            = New-Object Windows.Forms.Label
-    $lbl.Text       = $texto
-    $lbl.Location   = New-Object Drawing.Point($x, $y)
-    $lbl.Size       = New-Object Drawing.Size(710, 22)
-    $lbl.ForeColor  = $cAccent2
-    $lbl.Font       = New-Object Drawing.Font("Segoe UI", 9, [Drawing.FontStyle]::Bold)
-    $parent.Controls.Add($lbl)
-    # linea separadora
-    $sep            = New-Object Windows.Forms.Panel
-    $sep.Location   = New-Object Drawing.Point($x, ($y + 20))
-    $sep.Size       = New-Object Drawing.Size(700, 1)
-    $sep.BackColor  = [Drawing.Color]::FromArgb(0, 80, 160)
-    $parent.Controls.Add($sep)
+    $l = New-Object Windows.Forms.Label
+    $l.Text      = "  $texto"
+    $l.Location  = New-Object Drawing.Point($x, $y)
+    $l.Size      = New-Object Drawing.Size(860, 22)
+    $l.ForeColor = $cAccent2
+    $l.BackColor = [Drawing.Color]::FromArgb(18, 35, 72)
+    $l.Font      = New-Object Drawing.Font("Segoe UI", 8.5, [Drawing.FontStyle]::Bold)
+    $l.TextAlign = "MiddleLeft"
+    $parent.Controls.Add($l)
+}
+
+function New-ScrollPanel($parent) {
+    $p = New-Object Windows.Forms.Panel
+    $p.Dock       = "Fill"
+    $p.AutoScroll = $true
+    $p.BackColor  = $cBg
+    $parent.Controls.Add($p)
+    return $p
 }
 
 # ============================================================
-#   TAB 1: REPARACION
+#   TAB 0: REPARACION
 # ============================================================
-New-SecLabel "Limpieza" 10 10 $tabRepair
+$scrollR = New-ScrollPanel $tabPanels[0]
+$yR = 5
 
-$b = New-Btn "  Limpiar Temporales" 10 38 195 38 $tabRepair
-$b.Add_Click({
-    Remove-Item "$env:TEMP\*" -Recurse -Force -EA SilentlyContinue
-    Remove-Item "C:\Windows\Temp\*" -Recurse -Force -EA SilentlyContinue
-    Write-Out "Temporales eliminados correctamente." $cGreen
+function Add-Section($t) { New-SecLabel $t 5 $yR $scrollR; $script:yR += 26 }
+function Add-Btn($txt, $cmd) {
+    $x = 8 + ($script:colR) * 198
+    $b = New-Btn $txt $x $script:yR 192 42 $scrollR
+    $c2 = $cmd; $lb = $txt
+    $b.Add_Click({ Run-Cmd-BG $c2 $lb })
+    $script:colR++
+    if ($script:colR -ge 4) { $script:colR = 0; $script:yR += 46 }
+}
+
+$script:colR = 0
+
+Add-Section "Limpieza"
+Add-Btn "Limpiar Temporales"  'Remove-Item "$env:TEMP\*","C:\Windows\Temp\*" -Recurse -Force -EA SilentlyContinue; "Temporales eliminados"'
+Add-Btn "Limpiar Prefetch"    'Remove-Item "C:\Windows\Prefetch\*" -Recurse -Force -EA SilentlyContinue; "Prefetch limpiado"'
+Add-Btn "Vaciar Papelera"     'Clear-RecycleBin -Force -EA SilentlyContinue; "Papelera vaciada"'
+Add-Btn "Limpiar DNS Cache"   'ipconfig /flushdns'
+if ($script:colR -ne 0) { $script:yR += 46; $script:colR = 0 }
+
+Add-Section "Reparación de Windows"
+Add-Btn "SFC /scannow"        'sfc /scannow'
+Add-Btn "DISM RestoreHealth"  'DISM /Online /Cleanup-Image /RestoreHealth'
+Add-Btn "DISM ScanHealth"     'DISM /Online /Cleanup-Image /ScanHealth'
+Add-Btn "Reset Windows Update" 'Stop-Service wuauserv,bits,cryptsvc -Force -EA SilentlyContinue; Remove-Item "C:\Windows\SoftwareDistribution" -Recurse -Force -EA SilentlyContinue; Start-Service wuauserv,bits,cryptsvc; "WU reiniciado"'
+if ($script:colR -ne 0) { $script:yR += 46; $script:colR = 0 }
+
+Add-Section "Red"
+Add-Btn "DNS Flush"           'ipconfig /flushdns'
+Add-Btn "Reset Red (netsh)"   'netsh int ip reset; netsh winsock reset; "Reset completado - reiniciar"'
+Add-Btn "Ver Puertos"         'netstat -ano'
+Add-Btn "Matar Puerto 80"     '$p=(netstat -ano|Select-String ":80 ")-replace ".*\s(\d+)$","$1"|Sort-Object -Unique; $p|Where{$_ -match "^\d+$"}|%{Stop-Process -Id $_ -Force -EA SilentlyContinue; "PID $_ terminado"}'
+if ($script:colR -ne 0) { $script:yR += 46; $script:colR = 0 }
+
+Add-Section "Disco y Almacenamiento"
+$btnChk = New-Btn "CheckDisk (C:)" 8 $yR 192 42 $scrollR
+$btnChk.Add_Click({
+    $r = [Windows.Forms.MessageBox]::Show("ChkDsk requiere reinicio.`nSe programara para el proximo arranque.","ChkDsk","YesNo","Question")
+    if ($r -eq "Yes") { Run-Cmd-BG 'echo Y | chkdsk C: /f /r' "ChkDsk C:" }
 })
+$script:colR = 1
+Add-Btn "Desfragmentar C:"    'defrag C: /U /V'
+Add-Btn "Optimizar SSD"       'defrag C: /L'
+Add-Btn "Info SMART disco"    'wmic diskdrive get status,model,size'
+if ($script:colR -ne 0) { $script:yR += 46; $script:colR = 0 }
 
-$b = New-Btn "  Limpiar Prefetch" 215 38 195 38 $tabRepair
-$b.Add_Click({
-    Remove-Item "C:\Windows\Prefetch\*" -Recurse -Force -EA SilentlyContinue
-    Write-Out "Prefetch limpiado." $cGreen
-})
+Add-Section "Arranque y Recuperación"
+Add-Btn "Crear Punto Rest."   'Checkpoint-Computer -Description "SysCodi_$(Get-Date -Format yyyyMMdd)" -RestorePointType MODIFY_SETTINGS; "Punto creado"'
+Add-Btn "Ver Puntos Rest."    'Get-ComputerRestorePoint | Select Description,CreationTime | Format-Table -AutoSize'
+Add-Btn "Ver arranque (BCD)"  'bcdedit /enum'
+Add-Btn "Exportar Errores"    'Get-EventLog System -EntryType Error -Newest 50 -EA SilentlyContinue | Export-Csv "$env:USERPROFILE\Desktop\errores.csv" -NoTypeInformation; "Exportado al escritorio"'
+if ($script:colR -ne 0) { $script:yR += 46; $script:colR = 0 }
 
-New-SecLabel "Reparacion de Windows" 10 90 $tabRepair
+Add-Section "Seguridad"
+Add-Btn "Estado Defender"     'Get-MpComputerStatus | Select AMRunningMode,RealTimeProtectionEnabled | Format-List'
+Add-Btn "Escaneo rapido"      'Start-MpScan -ScanType QuickScan; "Escaneo iniciado"'
+Add-Btn "Actualizar firmas"   'Update-MpSignature; "Firmas actualizadas"'
+Add-Btn "Ver usuarios"        'Get-LocalUser | Select Name,Enabled,LastLogon | Format-Table -AutoSize'
+if ($script:colR -ne 0) { $script:yR += 46; $script:colR = 0 }
 
-$b = New-Btn "  SFC /scannow" 10 118 195 38 $tabRepair
-$b.Add_Click({ Run-Cmd "sfc /scannow" })
-
-$b = New-Btn "  DISM RestoreHealth" 215 118 195 38 $tabRepair
-$b.Add_Click({ Run-Cmd "DISM /Online /Cleanup-Image /RestoreHealth" })
-
-$b = New-Btn "  CheckDisk (C:)" 420 118 195 38 $tabRepair
-$b.Add_Click({ Run-Cmd "chkdsk C: /f /r /x" })
-
-New-SecLabel "Red" 10 170 $tabRepair
-
-$b = New-Btn "  DNS Flush" 10 198 165 38 $tabRepair
-$b.Add_Click({ Run-Cmd "ipconfig /flushdns" })
-
-$b = New-Btn "  Reset Red (netsh)" 185 198 180 38 $tabRepair
-$b.Add_Click({
-    Run-Cmd "netsh int ip reset"
-    Run-Cmd "netsh winsock reset"
-    Write-Out "Reinicia el PC para aplicar cambios de red." $cYellow
-})
-
-$b = New-Btn "  Ver Puertos" 375 198 165 38 $tabRepair
-$b.Add_Click({ Run-Cmd "netstat -ano" })
-
-$b = New-Btn "  Matar Puerto 80" 550 198 165 38 $tabRepair
-$b.Add_Click({
-    $pids80 = (netstat -ano | Select-String ":80\s") -replace '.*\s(\d+)$','$1' | Sort-Object -Unique
-    foreach ($p in $pids80) {
-        if ($p -match '^\d+$') {
-            Stop-Process -Id $p -Force -EA SilentlyContinue
-            Write-Out "Proceso PID $p en puerto 80 terminado." $cGreen
-        }
+# Boton mantenimiento completo
+$yR += 8
+$btnMaint = New-Object Windows.Forms.Button
+$btnMaint.Text      = "  MANTENIMIENTO COMPLETO"
+$btnMaint.Location  = New-Object Drawing.Point(8, $yR)
+$btnMaint.Size      = New-Object Drawing.Size(860, 44)
+$btnMaint.BackColor = [Drawing.Color]::FromArgb(0, 75, 155)
+$btnMaint.ForeColor = $cText
+$btnMaint.FlatStyle = "Flat"
+$btnMaint.FlatAppearance.BorderColor = $cAccent2
+$btnMaint.FlatAppearance.BorderSize  = 2
+$btnMaint.Font      = New-Object Drawing.Font("Segoe UI", 10, [Drawing.FontStyle]::Bold)
+$btnMaint.Cursor    = "Hand"
+$btnMaint.Add_Click({
+    Write-Section "MANTENIMIENTO COMPLETO"
+    $cmds = @(
+        @("Temporales",      'Remove-Item "$env:TEMP\*","C:\Windows\Temp\*" -Recurse -Force -EA SilentlyContinue'),
+        @("Flush DNS",       'ipconfig /flushdns'),
+        @("SFC",             'sfc /scannow'),
+        @("DISM",            'DISM /Online /Cleanup-Image /RestoreHealth'),
+        @("Papelera",        'Clear-RecycleBin -Force -EA SilentlyContinue'),
+        @("Optimizar disco", 'Optimize-Volume -DriveLetter C -EA SilentlyContinue')
+    )
+    Start-Progress
+    foreach ($c in $cmds) {
+        Write-Out ">>> $($c[0])..." $cSubText
+        Invoke-Expression $c[1] 2>&1 | Out-Null
+        Write-Out "OK: $($c[0])" $cGreen
+        [Windows.Forms.Application]::DoEvents()
     }
+    Stop-Progress
+    Write-Out "MANTENIMIENTO COMPLETO FINALIZADO" $cGreen
 })
+$scrollR.Controls.Add($btnMaint)
+$yR += 55
+$scrollR.AutoScrollMinSize = New-Object Drawing.Size(875, ($yR + 20))
 
 # ============================================================
-#   TAB 2: APLICACIONES
+#   TAB 1: APLICACIONES
 # ============================================================
-$scroll           = New-Object Windows.Forms.Panel
-$scroll.Location  = New-Object Drawing.Point(0, 0)
-$scroll.Size      = New-Object Drawing.Size(725, 430)
-$scroll.AutoScroll= $true
-$scroll.BackColor = $cBg
-$tabApps.Controls.Add($scroll)
+$pTopApps = New-Object Windows.Forms.Panel
+$pTopApps.Dock      = "Top"
+$pTopApps.Height    = 48
+$pTopApps.BackColor = $cPanel
+$tabPanels[1].Controls.Add($pTopApps)
+
+$txtSearch = New-Object Windows.Forms.TextBox
+$txtSearch.Location    = New-Object Drawing.Point(70, 12)
+$txtSearch.Size        = New-Object Drawing.Size(200, 26)
+$txtSearch.BackColor   = [Drawing.Color]::FromArgb(15,28,58)
+$txtSearch.ForeColor   = $cText
+$txtSearch.BorderStyle = "FixedSingle"
+$pTopApps.Controls.Add($txtSearch)
+$lblSrc = New-Object Windows.Forms.Label; $lblSrc.Text = "Buscar:"; $lblSrc.Location = New-Object Drawing.Point(8,16); $lblSrc.Size = New-Object Drawing.Size(60,20); $lblSrc.ForeColor = $cSubText; $pTopApps.Controls.Add($lblSrc)
+
+$btnSelTodo = New-Object Windows.Forms.Button; $btnSelTodo.Text = "Sel. Todo"; $btnSelTodo.Location = New-Object Drawing.Point(280,10); $btnSelTodo.Size = New-Object Drawing.Size(85,28); $btnSelTodo.BackColor = [Drawing.Color]::FromArgb(0,70,130); $btnSelTodo.ForeColor = $cText; $btnSelTodo.FlatStyle = "Flat"; $btnSelTodo.Font = New-Object Drawing.Font("Segoe UI",8); $pTopApps.Controls.Add($btnSelTodo)
+$btnLimpiarS = New-Object Windows.Forms.Button; $btnLimpiarS.Text = "Limpiar"; $btnLimpiarS.Location = New-Object Drawing.Point(370,10); $btnLimpiarS.Size = New-Object Drawing.Size(75,28); $btnLimpiarS.BackColor = [Drawing.Color]::FromArgb(80,20,20); $btnLimpiarS.ForeColor = $cText; $btnLimpiarS.FlatStyle = "Flat"; $btnLimpiarS.Font = New-Object Drawing.Font("Segoe UI",8); $pTopApps.Controls.Add($btnLimpiarS)
+$btnFoss = New-Object Windows.Forms.Button; $btnFoss.Text = "Solo FOSS"; $btnFoss.Location = New-Object Drawing.Point(450,10); $btnFoss.Size = New-Object Drawing.Size(90,28); $btnFoss.BackColor = [Drawing.Color]::FromArgb(0,55,28); $btnFoss.ForeColor = $cAccent2; $btnFoss.FlatStyle = "Flat"; $btnFoss.Font = New-Object Drawing.Font("Segoe UI",8); $pTopApps.Controls.Add($btnFoss)
+
+$btnInstalar = New-Object Windows.Forms.Button
+$btnInstalar.Text      = "  INSTALAR SELECCIONADAS"
+$btnInstalar.Location  = New-Object Drawing.Point(555, 7)
+$btnInstalar.Size      = New-Object Drawing.Size(220, 34)
+$btnInstalar.BackColor = [Drawing.Color]::FromArgb(0, 110, 55)
+$btnInstalar.ForeColor = $cText
+$btnInstalar.FlatStyle = "Flat"
+$btnInstalar.FlatAppearance.BorderColor = $cGreen
+$btnInstalar.Font      = New-Object Drawing.Font("Segoe UI", 9, [Drawing.FontStyle]::Bold)
+$pTopApps.Controls.Add($btnInstalar)
+
+$scrollA = New-Object Windows.Forms.Panel
+$scrollA.Dock       = "Fill"
+$scrollA.AutoScroll = $true
+$scrollA.BackColor  = $cBg
+$tabPanels[1].Controls.Add($scrollA)
 
 $appList = @(
-    @{cat="Navegadores";    name="Google Chrome";   cmd="winget install -e --id Google.Chrome"},
-    @{cat="Navegadores";    name="Mozilla Firefox"; cmd="winget install -e --id Mozilla.Firefox"},
-    @{cat="Navegadores";    name="Brave Browser";   cmd="winget install -e --id Brave.Brave"; foss=$true},
-    @{cat="Navegadores";    name="LibreWolf";        cmd="winget install -e --id LibreWolf.LibreWolf"; foss=$true},
-    @{cat="Comunicacion";   name="Discord";          cmd="winget install -e --id Discord.Discord"},
-    @{cat="Comunicacion";   name="Telegram";         cmd="winget install -e --id Telegram.TelegramDesktop"; foss=$true},
-    @{cat="Comunicacion";   name="Slack";            cmd="winget install -e --id SlackTechnologies.Slack"},
-    @{cat="Comunicacion";   name="Signal";           cmd="winget install -e --id OpenWhisperSystems.Signal"; foss=$true},
-    @{cat="Desarrollo";     name="VS Code";          cmd="winget install -e --id Microsoft.VisualStudioCode"},
-    @{cat="Desarrollo";     name="Git";              cmd="winget install -e --id Git.Git"; foss=$true},
-    @{cat="Desarrollo";     name="Python 3";         cmd="winget install -e --id Python.Python.3"; foss=$true},
-    @{cat="Desarrollo";     name="NodeJS LTS";       cmd="winget install -e --id OpenJS.NodeJS.LTS"; foss=$true},
-    @{cat="Utilidades";     name="7-Zip";            cmd="winget install -e --id 7zip.7zip"; foss=$true},
-    @{cat="Utilidades";     name="VLC";              cmd="winget install -e --id VideoLAN.VLC"; foss=$true},
-    @{cat="Utilidades";     name="WinRAR";           cmd="winget install -e --id RARLab.WinRAR"},
-    @{cat="Utilidades";     name="Notepad++";        cmd="winget install -e --id Notepad++.Notepad++"; foss=$true}
+    @{cat="Navegadores";    name="Google Chrome";       cmd="winget install -e --id Google.Chrome -h";                     foss=$false},
+    @{cat="Navegadores";    name="Mozilla Firefox";     cmd="winget install -e --id Mozilla.Firefox -h";                   foss=$true},
+    @{cat="Navegadores";    name="Brave Browser";       cmd="winget install -e --id Brave.Brave -h";                       foss=$true},
+    @{cat="Navegadores";    name="LibreWolf";            cmd="winget install -e --id LibreWolf.LibreWolf -h";               foss=$true},
+    @{cat="Navegadores";    name="Opera GX";             cmd="winget install -e --id Opera.OperaGX -h";                    foss=$false},
+    @{cat="Comunicacion";   name="Discord";              cmd="winget install -e --id Discord.Discord -h";                  foss=$false},
+    @{cat="Comunicacion";   name="Telegram";             cmd="winget install -e --id Telegram.TelegramDesktop -h";         foss=$true},
+    @{cat="Comunicacion";   name="Slack";                cmd="winget install -e --id SlackTechnologies.Slack -h";          foss=$false},
+    @{cat="Comunicacion";   name="Signal";               cmd="winget install -e --id OpenWhisperSystems.Signal -h";        foss=$true},
+    @{cat="Comunicacion";   name="Zoom";                 cmd="winget install -e --id Zoom.Zoom -h";                        foss=$false},
+    @{cat="Comunicacion";   name="Microsoft Teams";      cmd="winget install -e --id Microsoft.Teams -h";                  foss=$false},
+    @{cat="Desarrollo";     name="VS Code";              cmd="winget install -e --id Microsoft.VisualStudioCode -h";       foss=$true},
+    @{cat="Desarrollo";     name="Git";                  cmd="winget install -e --id Git.Git -h";                          foss=$true},
+    @{cat="Desarrollo";     name="Python 3";             cmd="winget install -e --id Python.Python.3 -h";                  foss=$true},
+    @{cat="Desarrollo";     name="NodeJS LTS";           cmd="winget install -e --id OpenJS.NodeJS.LTS -h";                foss=$true},
+    @{cat="Desarrollo";     name="Docker Desktop";       cmd="winget install -e --id Docker.DockerDesktop -h";             foss=$false},
+    @{cat="Desarrollo";     name="Postman";              cmd="winget install -e --id Postman.Postman -h";                  foss=$false},
+    @{cat="Desarrollo";     name="PowerShell 7";         cmd="winget install -e --id Microsoft.PowerShell -h";             foss=$true},
+    @{cat="Desarrollo";     name="Windows Terminal";     cmd="winget install -e --id Microsoft.WindowsTerminal -h";        foss=$true},
+    @{cat="Utilidades";     name="7-Zip";                cmd="winget install -e --id 7zip.7zip -h";                        foss=$true},
+    @{cat="Utilidades";     name="WinRAR";               cmd="winget install -e --id RARLab.WinRAR -h";                    foss=$false},
+    @{cat="Utilidades";     name="Notepad++";            cmd="winget install -e --id Notepad++.Notepad++ -h";              foss=$true},
+    @{cat="Utilidades";     name="Everything";           cmd="winget install -e --id voidtools.Everything -h";             foss=$false},
+    @{cat="Utilidades";     name="CPU-Z";                cmd="winget install -e --id CPUID.CPU-Z -h";                      foss=$false},
+    @{cat="Utilidades";     name="GPU-Z";                cmd="winget install -e --id TechPowerUp.GPU-Z -h";                foss=$false},
+    @{cat="Utilidades";     name="CrystalDiskInfo";      cmd="winget install -e --id CrystalDewWorld.CrystalDiskInfo -h";  foss=$false},
+    @{cat="Multimedia";     name="VLC";                  cmd="winget install -e --id VideoLAN.VLC -h";                     foss=$true},
+    @{cat="Multimedia";     name="Spotify";              cmd="winget install -e --id Spotify.Spotify -h";                  foss=$false},
+    @{cat="Multimedia";     name="OBS Studio";           cmd="winget install -e --id OBSProject.OBSStudio -h";             foss=$true},
+    @{cat="Multimedia";     name="HandBrake";            cmd="winget install -e --id HandBrake.HandBrake -h";              foss=$true},
+    @{cat="Multimedia";     name="Audacity";             cmd="winget install -e --id Audacity.Audacity -h";                foss=$true},
+    @{cat="Multimedia";     name="GIMP";                 cmd="winget install -e --id GIMP.GIMP -h";                        foss=$true},
+    @{cat="Oficina";        name="LibreOffice";          cmd="winget install -e --id TheDocumentFoundation.LibreOffice -h"; foss=$true},
+    @{cat="Oficina";        name="SumatraPDF";           cmd="winget install -e --id SumatraPDF.SumatraPDF -h";            foss=$true},
+    @{cat="Oficina";        name="Obsidian";             cmd="winget install -e --id Obsidian.Obsidian -h";                foss=$false},
+    @{cat="Seguridad";      name="Malwarebytes";         cmd="winget install -e --id Malwarebytes.Malwarebytes -h";        foss=$false},
+    @{cat="Seguridad";      name="Bitwarden";            cmd="winget install -e --id Bitwarden.Bitwarden -h";              foss=$true},
+    @{cat="Seguridad";      name="KeePassXC";            cmd="winget install -e --id KeePassXCTeam.KeePassXC -h";          foss=$true},
+    @{cat="Gaming";         name="Steam";                cmd="winget install -e --id Valve.Steam -h";                      foss=$false},
+    @{cat="Gaming";         name="Epic Games";           cmd="winget install -e --id EpicGames.EpicGamesLauncher -h";      foss=$false},
+    @{cat="Gaming";         name="MSI Afterburner";      cmd="winget install -e --id Guru3D.Afterburner -h";               foss=$false}
 )
 
-$checkboxes = @()
-$yPos = 5; $lastCat = ""; $col = 0
+$checkboxes = [System.Collections.ArrayList]@()
+$yA = 5; $lastCatA = ""; $colA = 0
 
 foreach ($app in $appList) {
-    if ($app.cat -ne $lastCat) {
-        $col = 0
-        if ($lastCat -ne "") { $yPos += 8 }
-        $lbl          = New-Object Windows.Forms.Label
-        $lbl.Text     = " $($app.cat)"
-        $lbl.Location = New-Object Drawing.Point(5, $yPos)
-        $lbl.Size     = New-Object Drawing.Size(720, 20)
-        $lbl.ForeColor= $cAccent2
-        $lbl.Font     = New-Object Drawing.Font("Segoe UI", 9, [Drawing.FontStyle]::Bold)
-        $scroll.Controls.Add($lbl)
-        $yPos += 22; $lastCat = $app.cat
+    if ($app.cat -ne $lastCatA) {
+        if ($lastCatA -ne "") { if ($colA -ne 0) { $yA += 26 }; $yA += 6 }
+        $lbl = New-Object Windows.Forms.Label
+        $lbl.Text = "  $($app.cat)"; $lbl.Location = New-Object Drawing.Point(5,$yA); $lbl.Size = New-Object Drawing.Size(860,22)
+        $lbl.ForeColor = $cAccent2; $lbl.BackColor = [Drawing.Color]::FromArgb(18,35,72)
+        $lbl.Font = New-Object Drawing.Font("Segoe UI",9,[Drawing.FontStyle]::Bold)
+        $scrollA.Controls.Add($lbl); $yA += 24; $lastCatA = $app.cat; $colA = 0
     }
-    $cb           = New-Object Windows.Forms.CheckBox
-    $cb.Text      = $app.name
-    $cb.Location  = New-Object Drawing.Point((5 + $col * 178), $yPos)
-    $cb.Size      = New-Object Drawing.Size(170, 22)
+    $cb = New-Object Windows.Forms.CheckBox
+    $cb.Text = $app.name; $cb.Location = New-Object Drawing.Point((5+$colA*185),$yA); $cb.Size = New-Object Drawing.Size(180,22)
     $cb.ForeColor = if ($app.foss) { $cAccent2 } else { $cText }
-    $cb.BackColor = $cBg
-    $cb.Tag       = $app.cmd
-    $scroll.Controls.Add($cb)
-    $checkboxes += $cb
-    $col++
-    if ($col -ge 4) { $col = 0; $yPos += 25 }
+    $cb.BackColor = $cBg; $cb.Tag = $app; $scrollA.Controls.Add($cb); $checkboxes.Add($cb) | Out-Null
+    $colA++; if ($colA -ge 5) { $colA = 0; $yA += 24 }
 }
-$yPos += 30
+$yA += 24; $scrollA.AutoScrollMinSize = New-Object Drawing.Size(870,($yA+20))
 
-$pnlAppBtns           = New-Object Windows.Forms.Panel
-$pnlAppBtns.Location  = New-Object Drawing.Point(0, 432)
-$pnlAppBtns.Size      = New-Object Drawing.Size(725, 48)
-$pnlAppBtns.BackColor = $cPanel
-$tabApps.Controls.Add($pnlAppBtns)
-
-$lblFoss          = New-Object Windows.Forms.Label
-$lblFoss.Text     = "  Azul claro = FOSS (Software Libre)"
-$lblFoss.ForeColor= $cAccent2
-$lblFoss.Location = New-Object Drawing.Point(10, 14)
-$lblFoss.Size     = New-Object Drawing.Size(280, 20)
-$pnlAppBtns.Controls.Add($lblFoss)
-
-$b = New-Btn "  Instalar Seleccionadas" 490 7 210 34 $pnlAppBtns
-$b.Add_Click({
+$btnSelTodo.Add_Click({ $checkboxes | ForEach-Object { $_.Checked = $true } })
+$btnLimpiarS.Add_Click({ $checkboxes | ForEach-Object { $_.Checked = $false } })
+$btnFoss.Add_Click({ $checkboxes | ForEach-Object { $_.Checked = ($_.Tag.foss -eq $true) } })
+$txtSearch.Add_TextChanged({
+    $q = $txtSearch.Text.Trim().ToLower()
+    foreach ($cb in $checkboxes) { $cb.ForeColor = if ($q -and $cb.Text.ToLower().Contains($q)) { $cYellow } else { if ($cb.Tag.foss) { $cAccent2 } else { $cText } } }
+})
+$btnInstalar.Add_Click({
     $sel = $checkboxes | Where-Object { $_.Checked }
-    if ($sel.Count -eq 0) { Write-Out "No seleccionaste ninguna aplicacion." $cYellow; return }
+    if ($sel.Count -eq 0) { Write-Out "No seleccionaste ninguna app." $cYellow; return }
+    if (-not (Get-Command winget -EA SilentlyContinue)) { Write-Out "Winget no encontrado." $cRed; return }
+    Write-Section "INSTALANDO $($sel.Count) APLICACIONES"
+    Start-Progress; $i=0
     foreach ($cb in $sel) {
-        Write-Out "Instalando: $($cb.Text)..." $cSubText
-        Start-Process powershell -ArgumentList "-NoProfile -Command `"$($cb.Tag)`"" -Wait
-        Write-Out "$($cb.Text) instalado." $cGreen
+        $i++; Write-Out "[$i/$($sel.Count)] $($cb.Tag.name)..." $cSubText
+        Start-Process powershell -ArgumentList "-NoProfile -WindowStyle Hidden -Command `"$($cb.Tag.cmd)`"" -Wait -EA SilentlyContinue
+        Write-Out "  OK: $($cb.Tag.name)" $cGreen
+        [Windows.Forms.Application]::DoEvents()
     }
+    Stop-Progress; Write-Out "Instalacion completada." $cGreen
 })
 
-$b2 = New-Btn "  Limpiar Seleccion" 280 7 200 34 $pnlAppBtns
-$b2.Add_Click({ $checkboxes | ForEach-Object { $_.Checked = $false } })
-
 # ============================================================
-#   TAB 3: TWEAKS
+#   TAB 2: TWEAKS
 # ============================================================
-New-SecLabel "Rendimiento y Privacidad" 10 10 $tabTweaks
+$scrollTw = New-ScrollPanel $tabPanels[2]
+$yTw = 5; $script:colTw = 0
 
-$tweaks = @(
-    @{name="Plan de energia: Alto rendimiento"; cmd='powercfg /s 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c'},
-    @{name="Deshabilitar efectos visuales";      cmd='SystemPropertiesPerformance.exe'},
-    @{name="Deshabilitar notificaciones";        cmd='reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\PushNotifications" /v ToastEnabled /t REG_DWORD /d 0 /f'},
-    @{name="Deshabilitar Telemetria";            cmd='reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection" /v AllowTelemetry /t REG_DWORD /d 0 /f'},
-    @{name="Deshabilitar Cortana";               cmd='reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /v AllowCortana /t REG_DWORD /d 0 /f'},
-    @{name="Modo juego activado";                cmd='reg add "HKCU\Software\Microsoft\GameBar" /v AllowAutoGameMode /t REG_DWORD /d 1 /f'},
-    @{name="Mostrar extensiones de archivo";     cmd='reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v HideFileExt /t REG_DWORD /d 0 /f'},
-    @{name="Mostrar archivos ocultos";           cmd='reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v Hidden /t REG_DWORD /d 1 /f'},
-    @{name="Deshabilitar animaciones de ventana";cmd='reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects" /v VisualFXSetting /t REG_DWORD /d 2 /f'},
-    @{name="Habilitar modo oscuro";              cmd='reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" /v AppsUseLightTheme /t REG_DWORD /d 0 /f'}
+$tweakData = @(
+    @{cat="Rendimiento"; name="Alto rendimiento (energia)"; cmd='powercfg /s 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c'; rev='powercfg /s 381b4222-f694-41f0-9685-ff5bb260df2e'; warn=$false},
+    @{cat="Rendimiento"; name="Deshabilitar efectos visuales"; cmd='reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects" /v VisualFXSetting /t REG_DWORD /d 2 /f'; rev='reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects" /v VisualFXSetting /t REG_DWORD /d 1 /f'; warn=$false},
+    @{cat="Rendimiento"; name="Modo juego activado"; cmd='reg add "HKCU\Software\Microsoft\GameBar" /v AllowAutoGameMode /t REG_DWORD /d 1 /f'; rev='reg add "HKCU\Software\Microsoft\GameBar" /v AllowAutoGameMode /t REG_DWORD /d 0 /f'; warn=$false},
+    @{cat="Rendimiento"; name="Desactivar SysMain"; cmd='Stop-Service SysMain -Force; Set-Service SysMain -StartupType Disabled'; rev='Set-Service SysMain -StartupType Automatic; Start-Service SysMain'; warn=$false},
+    @{cat="Rendimiento"; name="Desactivar Search Indexing"; cmd='Stop-Service WSearch -Force; Set-Service WSearch -StartupType Disabled'; rev='Set-Service WSearch -StartupType Automatic; Start-Service WSearch'; warn=$false},
+    @{cat="Rendimiento"; name="GPU Hardware Scheduling [!]"; cmd='reg add "HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers" /v HwSchMode /t REG_DWORD /d 2 /f'; rev='reg add "HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers" /v HwSchMode /t REG_DWORD /d 1 /f'; warn=$true},
+    @{cat="Privacidad"; name="Deshabilitar telemetria"; cmd='reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection" /v AllowTelemetry /t REG_DWORD /d 0 /f'; rev='reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection" /v AllowTelemetry /f'; warn=$false},
+    @{cat="Privacidad"; name="Deshabilitar Cortana"; cmd='reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /v AllowCortana /t REG_DWORD /d 0 /f'; rev='reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /v AllowCortana /f'; warn=$false},
+    @{cat="Privacidad"; name="Deshabilitar Activity History"; cmd='reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\System" /v EnableActivityFeed /t REG_DWORD /d 0 /f'; rev='reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\System" /v EnableActivityFeed /f'; warn=$false},
+    @{cat="Privacidad"; name="Deshabilitar anuncios"; cmd='reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo" /v Enabled /t REG_DWORD /d 0 /f'; rev='reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo" /v Enabled /t REG_DWORD /d 1 /f'; warn=$false},
+    @{cat="Privacidad"; name="Deshabilitar ubicacion"; cmd='reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" /v SensorPermissionState /t REG_DWORD /d 0 /f'; rev='reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" /v SensorPermissionState /t REG_DWORD /d 1 /f'; warn=$false},
+    @{cat="Interfaz"; name="Mostrar extensiones archivo"; cmd='reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v HideFileExt /t REG_DWORD /d 0 /f'; rev='reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v HideFileExt /t REG_DWORD /d 1 /f'; warn=$false},
+    @{cat="Interfaz"; name="Mostrar archivos ocultos"; cmd='reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v Hidden /t REG_DWORD /d 1 /f'; rev='reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v Hidden /t REG_DWORD /d 2 /f'; warn=$false},
+    @{cat="Interfaz"; name="Menu contextual clasico (W11)"; cmd='reg add "HKCU\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" /ve /t REG_SZ /d "" /f'; rev='reg delete "HKCU\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}" /f'; warn=$false},
+    @{cat="Interfaz"; name="Deshabilitar notificaciones"; cmd='reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\PushNotifications" /v ToastEnabled /t REG_DWORD /d 0 /f'; rev='reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\PushNotifications" /v ToastEnabled /t REG_DWORD /d 1 /f'; warn=$false},
+    @{cat="Interfaz"; name="Transparencia OFF"; cmd='reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" /v EnableTransparency /t REG_DWORD /d 0 /f'; rev='reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" /v EnableTransparency /t REG_DWORD /d 1 /f'; warn=$false},
+    @{cat="Red"; name="DNS Cloudflare (1.1.1.1)"; cmd='Set-DnsClientServerAddress -InterfaceAlias "Ethernet*","Wi-Fi*" -ServerAddresses 1.1.1.1,1.0.0.1 -EA SilentlyContinue'; rev='Set-DnsClientServerAddress -InterfaceAlias "Ethernet*","Wi-Fi*" -ResetServerAddresses -EA SilentlyContinue'; warn=$false},
+    @{cat="Red"; name="DNS Google (8.8.8.8)"; cmd='Set-DnsClientServerAddress -InterfaceAlias "Ethernet*","Wi-Fi*" -ServerAddresses 8.8.8.8,8.8.4.4 -EA SilentlyContinue'; rev='Set-DnsClientServerAddress -InterfaceAlias "Ethernet*","Wi-Fi*" -ResetServerAddresses -EA SilentlyContinue'; warn=$false},
+    @{cat="Red"; name="Limitar banda reservada"; cmd='reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Psched" /v NonBestEffortLimit /t REG_DWORD /d 0 /f'; rev='reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\Psched" /v NonBestEffortLimit /f'; warn=$false},
+    @{cat="Seguridad"; name="Deshabilitar autorun USB"; cmd='reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v NoDriveTypeAutoRun /t REG_DWORD /d 255 /f'; rev='reg delete "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v NoDriveTypeAutoRun /f'; warn=$false},
+    @{cat="Seguridad"; name="Deshabilitar Remote Desktop"; cmd='reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 1 /f'; rev='reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f'; warn=$false}
 )
 
-$yT = 38; $colT = 0; $tweakChecks = @()
-foreach ($tw in $tweaks) {
-    $cb           = New-Object Windows.Forms.CheckBox
-    $cb.Text      = $tw.name
-    $cb.Location  = New-Object Drawing.Point((10 + $colT * 360), $yT)
-    $cb.Size      = New-Object Drawing.Size(350, 26)
-    $cb.ForeColor = $cText
-    $cb.BackColor = $cBg
-    $cb.Tag       = $tw.cmd
-    $tabTweaks.Controls.Add($cb)
-    $tweakChecks += $cb
-    $colT++
-    if ($colT -ge 2) { $colT = 0; $yT += 30 }
+$tweakChecks = [System.Collections.ArrayList]@()
+$lastCatTw2 = ""
+foreach ($tw in $tweakData) {
+    if ($tw.cat -ne $lastCatTw2) {
+        if ($lastCatTw2 -ne "") { if ($script:colTw -ne 0) { $yTw += 26 }; $yTw += 6 }
+        New-SecLabel $tw.cat 5 $yTw $scrollTw; $yTw += 26; $lastCatTw2 = $tw.cat; $script:colTw = 0
+    }
+    $cb = New-Object Windows.Forms.CheckBox
+    $cb.Text = if ($tw.warn) { "$($tw.name)  [!]" } else { $tw.name }
+    $cb.Location = New-Object Drawing.Point((5+$script:colTw*430),$yTw)
+    $cb.Size = New-Object Drawing.Size(422,24); $cb.ForeColor = if ($tw.warn) { $cYellow } else { $cText }
+    $cb.BackColor = $cBg; $cb.Tag = $tw; $scrollTw.Controls.Add($cb); $tweakChecks.Add($cb) | Out-Null
+    $script:colTw++; if ($script:colTw -ge 2) { $script:colTw = 0; $yTw += 26 }
 }
+$yTw += 12
 
-$b = New-Btn "  Aplicar Tweaks Seleccionados" 10 360 260 38 $tabTweaks
-$b.Add_Click({
+$pnlTwBtns = New-Object Windows.Forms.Panel; $pnlTwBtns.Location = New-Object Drawing.Point(5,$yTw); $pnlTwBtns.Size = New-Object Drawing.Size(860,48); $pnlTwBtns.BackColor = $cPanel; $scrollTw.Controls.Add($pnlTwBtns)
+
+$btnApply = New-Object Windows.Forms.Button; $btnApply.Text = "  Aplicar Seleccionados"; $btnApply.Location = New-Object Drawing.Point(5,7); $btnApply.Size = New-Object Drawing.Size(200,34); $btnApply.BackColor = [Drawing.Color]::FromArgb(0,95,55); $btnApply.ForeColor = $cText; $btnApply.FlatStyle = "Flat"; $btnApply.Font = New-Object Drawing.Font("Segoe UI",9,[Drawing.FontStyle]::Bold)
+$btnApply.Add_Click({
     $sel = $tweakChecks | Where-Object { $_.Checked }
     if ($sel.Count -eq 0) { Write-Out "No seleccionaste ningun tweak." $cYellow; return }
-    foreach ($cb in $sel) {
-        Write-Out "Aplicando: $($cb.Text)..." $cSubText
-        Invoke-Expression $cb.Tag 2>&1 | Out-Null
-        Write-Out "Listo." $cGreen
-    }
-    Write-Out "Todos los tweaks aplicados. Puede requerir reinicio." $cGreen
+    $bak = "$logDir\reg_bak_$(Get-Date -Format yyyyMMdd_HHmmss).reg"
+    reg export HKCU $bak /y | Out-Null; Write-Out "Backup: $bak" $cSubText
+    foreach ($cb in $sel) { Write-Out "Aplicando: $($cb.Tag.name)..." $cSubText; Invoke-Expression $cb.Tag.cmd 2>&1 | Out-Null; Write-Out "  OK" $cGreen }
+    Write-Out "Tweaks aplicados. Puede requerir reinicio." $cYellow
 })
+$pnlTwBtns.Controls.Add($btnApply)
 
-# ============================================================
-#   TAB 4: UTILIDADES
-# ============================================================
-function Install-MsOffCrypto {
-    $check = python -c "import msoffcrypto" 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        Write-Out "Instalando msoffcrypto-tool..." $cSubText
-        python -m pip install msoffcrypto-tool | Out-Null
+$btnRevert = New-Object Windows.Forms.Button; $btnRevert.Text = "Revertir Seleccionados"; $btnRevert.Location = New-Object Drawing.Point(215,7); $btnRevert.Size = New-Object Drawing.Size(180,34); $btnRevert.BackColor = [Drawing.Color]::FromArgb(100,45,0); $btnRevert.ForeColor = $cText; $btnRevert.FlatStyle = "Flat"; $btnRevert.Font = New-Object Drawing.Font("Segoe UI",9)
+$btnRevert.Add_Click({ $tweakChecks | Where-Object { $_.Checked } | ForEach-Object { if ($_.Tag.rev) { Invoke-Expression $_.Tag.rev 2>&1 | Out-Null }; Write-Out "Revertido: $($_.Tag.name)" $cYellow } })
+$pnlTwBtns.Controls.Add($btnRevert)
+
+$cmbPerfil = New-Object Windows.Forms.ComboBox; $cmbPerfil.Location = New-Object Drawing.Point(560,10); $cmbPerfil.Size = New-Object Drawing.Size(140,28); $cmbPerfil.BackColor = $cPanel; $cmbPerfil.ForeColor = $cText; $cmbPerfil.FlatStyle = "Flat"; $cmbPerfil.DropDownStyle = "DropDownList"; $cmbPerfil.Items.AddRange(@("Gaming","Oficina","Privacidad Max","PC Antigua")); $pnlTwBtns.Controls.Add($cmbPerfil)
+
+$btnPerfil = New-Object Windows.Forms.Button; $btnPerfil.Text = "Aplicar Perfil"; $btnPerfil.Location = New-Object Drawing.Point(710,7); $btnPerfil.Size = New-Object Drawing.Size(140,34); $btnPerfil.BackColor = [Drawing.Color]::FromArgb(0,75,145); $btnPerfil.ForeColor = $cText; $btnPerfil.FlatStyle = "Flat"; $btnPerfil.Font = New-Object Drawing.Font("Segoe UI",9)
+$btnPerfil.Add_Click({
+    $p = $cmbPerfil.SelectedItem
+    $map = @{
+        "Gaming"         = @("Alto rendimiento (energia)","Modo juego activado","GPU Hardware Scheduling [!]","Desactivar SysMain")
+        "Oficina"        = @("Mostrar extensiones archivo","Mostrar archivos ocultos","Deshabilitar notificaciones")
+        "Privacidad Max" = @("Deshabilitar telemetria","Deshabilitar Cortana","Deshabilitar Activity History","Deshabilitar anuncios","Deshabilitar ubicacion")
+        "PC Antigua"     = @("Deshabilitar efectos visuales","Desactivar SysMain","Desactivar Search Indexing","Transparencia OFF","Alto rendimiento (energia)")
     }
-}
+    $sel = $map[$p]
+    $tweakChecks | ForEach-Object { $_.Checked = ($sel -contains $_.Tag.name) }
+    Write-Out "Perfil '$p' listo. Pulsa Aplicar." $cAccent2
+})
+$pnlTwBtns.Controls.Add($btnPerfil)
+$yTw += 60; $scrollTw.AutoScrollMinSize = New-Object Drawing.Size(870,($yTw+20))
 
-function New-UtilPanel($titulo, $sub, $parent, $y, $h=120) {
-    $pnl           = New-Object Windows.Forms.Panel
-    $pnl.Location  = New-Object Drawing.Point(8, $y)
-    $pnl.Size      = New-Object Drawing.Size(710, $h)
-    $pnl.BackColor = $cCard
-    $parent.Controls.Add($pnl)
-    $lbl           = New-Object Windows.Forms.Label
-    $lbl.Text      = $titulo
-    $lbl.Location  = New-Object Drawing.Point(10, 8)
-    $lbl.Size      = New-Object Drawing.Size(690, 22)
-    $lbl.ForeColor = $cAccent2
-    $lbl.Font      = New-Object Drawing.Font("Segoe UI", 10, [Drawing.FontStyle]::Bold)
-    $pnl.Controls.Add($lbl)
-    $lblS          = New-Object Windows.Forms.Label
-    $lblS.Text     = $sub
-    $lblS.Location = New-Object Drawing.Point(10, 32)
-    $lblS.Size     = New-Object Drawing.Size(690, 16)
-    $lblS.ForeColor= $cSubText
-    $lblS.Font     = New-Object Drawing.Font("Segoe UI", 8)
-    $pnl.Controls.Add($lblS)
-    return $pnl
+# ============================================================
+#   TAB 3: UTILIDADES
+# ============================================================
+$scrollU = New-ScrollPanel $tabPanels[3]
+
+function New-UtilCard($titulo, $sub, $y, $h=125) {
+    $p = New-Object Windows.Forms.Panel; $p.Location = New-Object Drawing.Point(5,$y); $p.Size = New-Object Drawing.Size(860,$h); $p.BackColor = $cCard; $scrollU.Controls.Add($p)
+    $lt = New-Object Windows.Forms.Label; $lt.Text = "  $titulo"; $lt.Location = New-Object Drawing.Point(0,0); $lt.Size = New-Object Drawing.Size(860,28); $lt.ForeColor = $cAccent2; $lt.BackColor = [Drawing.Color]::FromArgb(18,35,72); $lt.Font = New-Object Drawing.Font("Segoe UI",10,[Drawing.FontStyle]::Bold); $lt.TextAlign = "MiddleLeft"; $p.Controls.Add($lt)
+    $ls = New-Object Windows.Forms.Label; $ls.Text = "  $sub"; $ls.Location = New-Object Drawing.Point(0,28); $ls.Size = New-Object Drawing.Size(860,20); $ls.ForeColor = $cSubText; $ls.Font = New-Object Drawing.Font("Segoe UI",8); $p.Controls.Add($ls)
+    return $p
 }
+function New-FPicker($panel,$y,$filter) {
+    $lbl = New-Object Windows.Forms.Label; $lbl.Text = "Ningun archivo"; $lbl.Location = New-Object Drawing.Point(10,$y); $lbl.Size = New-Object Drawing.Size(620,18); $lbl.ForeColor = $cSubText; $lbl.Font = New-Object Drawing.Font("Consolas",7.5); $panel.Controls.Add($lbl)
+    $btn = New-Object Windows.Forms.Button; $btn.Text = "Buscar"; $btn.Location = New-Object Drawing.Point(638,($y-3)); $btn.Size = New-Object Drawing.Size(110,24); $btn.BackColor = $cCard; $btn.ForeColor = $cText; $btn.FlatStyle = "Flat"; $btn.Font = New-Object Drawing.Font("Segoe UI",8)
+    $f2 = $filter; $btn.Add_Click({ $d = New-Object Windows.Forms.OpenFileDialog; $d.Filter = $f2; if ($d.ShowDialog() -eq "OK") { $lbl.Text = $d.FileName } }); $panel.Controls.Add($btn); return $lbl
+}
+function Inst-Dep($pkg) { $c = python -c "import $pkg" 2>&1; if ($LASTEXITCODE -ne 0) { Write-Out "Instalando $pkg..." $cSubText; python -m pip install $pkg --quiet 2>&1 | Out-Null } }
 
 # Excel
-$pnlExcel = New-UtilPanel "Quitar contrasena - Excel (.xlsx/.xls)" "Se creara una copia sin contrasena en la misma carpeta." $tabUtils 10
-
-$lblExcelPath           = New-Object Windows.Forms.Label
-$lblExcelPath.Text      = "Ningun archivo seleccionado"
-$lblExcelPath.Location  = New-Object Drawing.Point(10, 55)
-$lblExcelPath.Size      = New-Object Drawing.Size(690, 16)
-$lblExcelPath.ForeColor = $cText
-$lblExcelPath.Font      = New-Object Drawing.Font("Consolas", 7)
-$pnlExcel.Controls.Add($lblExcelPath)
-
-$b = New-Btn "Buscar Excel" 10 75 145 32 $pnlExcel
-$b.Add_Click({
-    $dlg = New-Object Windows.Forms.OpenFileDialog
-    $dlg.Filter = "Excel (*.xlsx;*.xls;*.xlsm)|*.xlsx;*.xls;*.xlsm"
-    if ($dlg.ShowDialog() -eq "OK") { $lblExcelPath.Text = $dlg.FileName }
-})
-
-$b2 = New-Btn "Quitar Contrasena" 165 75 175 32 $pnlExcel
-$b2.Add_Click({
-    $path = $lblExcelPath.Text
-    if (-not (Test-Path $path)) { Write-Out "Selecciona un archivo Excel primero." $cYellow; return }
-    Install-MsOffCrypto
-    $out = $path -replace '(\.[^.]+)$','_sin_pass$1'
-    $py  = "import msoffcrypto`nwith open(r'$path','rb') as f:`n    o=msoffcrypto.OfficeFile(f)`n    o.load_key(password='')`n    with open(r'$out','wb') as fw: o.decrypt(fw)`nprint('OK')"
-    $tmp = "$env:TEMP\unlock_excel.py"
-    $py | Set-Content $tmp -Encoding UTF8
-    $res = python $tmp 2>&1
-    if ($res -like "*OK*") { Write-Out "Excel desbloqueado: $out" $cGreen }
-    else { Write-Out "Error: $res" $cRed }
+$pE = New-UtilCard "Quitar contrasena - Excel" "Genera copia sin contrasena en la misma carpeta" 5 125
+$lblEF = New-FPicker $pE 52 "Excel (*.xlsx;*.xls;*.xlsm)|*.xlsx;*.xls;*.xlsm"
+$bE = New-Btn "  Quitar Contrasena" 10 78 190 36 $pE
+$bE.Add_Click({
+    $path = $lblEF.Text; if (-not (Test-Path $path)) { Write-Out "Selecciona Excel." $cYellow; return }
+    Inst-Dep "msoffcrypto"; $out = $path -replace '(\.[^.]+)$','_sin_pass$1'
+    $py = "import msoffcrypto`nwith open(r'$path','rb') as f:`n    o=msoffcrypto.OfficeFile(f); o.load_key(password='')`n    with open(r'$out','wb') as fw: o.decrypt(fw)`nprint('OK')"
+    $py | Set-Content "$env:TEMP\ux_e.py" -Encoding UTF8; $r = python "$env:TEMP\ux_e.py" 2>&1
+    if ($r -like "*OK*") { Write-Out "Desbloqueado: $out" $cGreen } else { Write-Out "Error: $r" $cRed }
 })
 
 # Word
-$pnlWord = New-UtilPanel "Quitar contrasena - Word (.docx/.doc)" "Se creara una copia sin contrasena en la misma carpeta." $tabUtils 140
-
-$lblWordPath           = New-Object Windows.Forms.Label
-$lblWordPath.Text      = "Ningun archivo seleccionado"
-$lblWordPath.Location  = New-Object Drawing.Point(10, 55)
-$lblWordPath.Size      = New-Object Drawing.Size(690, 16)
-$lblWordPath.ForeColor = $cText
-$lblWordPath.Font      = New-Object Drawing.Font("Consolas", 7)
-$pnlWord.Controls.Add($lblWordPath)
-
-$b = New-Btn "Buscar Word" 10 75 145 32 $pnlWord
-$b.Add_Click({
-    $dlg = New-Object Windows.Forms.OpenFileDialog
-    $dlg.Filter = "Word (*.docx;*.doc;*.docm)|*.docx;*.doc;*.docm"
-    if ($dlg.ShowDialog() -eq "OK") { $lblWordPath.Text = $dlg.FileName }
-})
-
-$b2 = New-Btn "Quitar Contrasena" 165 75 175 32 $pnlWord
-$b2.Add_Click({
-    $path = $lblWordPath.Text
-    if (-not (Test-Path $path)) { Write-Out "Selecciona un archivo Word primero." $cYellow; return }
-    Install-MsOffCrypto
-    $out = $path -replace '(\.[^.]+)$','_sin_pass$1'
-    $py  = "import msoffcrypto`nwith open(r'$path','rb') as f:`n    o=msoffcrypto.OfficeFile(f)`n    o.load_key(password='')`n    with open(r'$out','wb') as fw: o.decrypt(fw)`nprint('OK')"
-    $tmp = "$env:TEMP\unlock_word.py"
-    $py | Set-Content $tmp -Encoding UTF8
-    $res = python $tmp 2>&1
-    if ($res -like "*OK*") { Write-Out "Word desbloqueado: $out" $cGreen }
-    else { Write-Out "Error: $res" $cRed }
+$pW = New-UtilCard "Quitar contrasena - Word" "Genera copia sin contrasena en la misma carpeta" 133 125
+$lblWF = New-FPicker $pW 52 "Word (*.docx;*.doc;*.docm)|*.docx;*.doc;*.docm"
+$bW = New-Btn "  Quitar Contrasena" 10 78 190 36 $pW
+$bW.Add_Click({
+    $path = $lblWF.Text; if (-not (Test-Path $path)) { Write-Out "Selecciona Word." $cYellow; return }
+    Inst-Dep "msoffcrypto"; $out = $path -replace '(\.[^.]+)$','_sin_pass$1'
+    $py = "import msoffcrypto`nwith open(r'$path','rb') as f:`n    o=msoffcrypto.OfficeFile(f); o.load_key(password='')`n    with open(r'$out','wb') as fw: o.decrypt(fw)`nprint('OK')"
+    $py | Set-Content "$env:TEMP\ux_w.py" -Encoding UTF8; $r = python "$env:TEMP\ux_w.py" 2>&1
+    if ($r -like "*OK*") { Write-Out "Desbloqueado: $out" $cGreen } else { Write-Out "Error: $r" $cRed }
 })
 
 # ZIP
-$pnlZip = New-UtilPanel "Quitar contrasena - ZIP" "Ingresa la contrasena si la recuerdas, o usa fuerza bruta con wordlist (.txt)." $tabUtils 270 170
-
-$lblZipPath           = New-Object Windows.Forms.Label
-$lblZipPath.Text      = "Ningun archivo seleccionado"
-$lblZipPath.Location  = New-Object Drawing.Point(10, 55)
-$lblZipPath.Size      = New-Object Drawing.Size(400, 16)
-$lblZipPath.ForeColor = $cText
-$lblZipPath.Font      = New-Object Drawing.Font("Consolas", 7)
-$pnlZip.Controls.Add($lblZipPath)
-
-$lblWlPath           = New-Object Windows.Forms.Label
-$lblWlPath.Text      = "Sin wordlist"
-$lblWlPath.Location  = New-Object Drawing.Point(420, 55)
-$lblWlPath.Size      = New-Object Drawing.Size(270, 16)
-$lblWlPath.ForeColor = $cSubText
-$lblWlPath.Font      = New-Object Drawing.Font("Consolas", 7)
-$pnlZip.Controls.Add($lblWlPath)
-
-$lblPL           = New-Object Windows.Forms.Label
-$lblPL.Text      = "Contrasena:"
-$lblPL.Location  = New-Object Drawing.Point(10, 78)
-$lblPL.Size      = New-Object Drawing.Size(88, 20)
-$lblPL.ForeColor = $cText
-$pnlZip.Controls.Add($lblPL)
-
-$txtZipPass           = New-Object Windows.Forms.TextBox
-$txtZipPass.Location  = New-Object Drawing.Point(100, 76)
-$txtZipPass.Size      = New-Object Drawing.Size(160, 22)
-$txtZipPass.UseSystemPasswordChar = $true
-$txtZipPass.BackColor = $cOutput
-$txtZipPass.ForeColor = $cText
-$pnlZip.Controls.Add($txtZipPass)
-
-$b  = New-Btn "Buscar ZIP"  10 108 130 30 $pnlZip
-$b.Add_Click({
-    $dlg = New-Object Windows.Forms.OpenFileDialog
-    $dlg.Filter = "ZIP (*.zip)|*.zip"
-    if ($dlg.ShowDialog() -eq "OK") { $lblZipPath.Text = $dlg.FileName }
-})
-
-$b2 = New-Btn "Wordlist" 150 108 120 30 $pnlZip
-$b2.Add_Click({
-    $dlg = New-Object Windows.Forms.OpenFileDialog
-    $dlg.Filter = "Text (*.txt)|*.txt"
-    if ($dlg.ShowDialog() -eq "OK") { $lblWlPath.Text = $dlg.FileName }
-})
-
-$b3 = New-Btn "Extraer / Quitar Contrasena" 280 108 230 30 $pnlZip
-$b3.Add_Click({
-    $zipPath = $lblZipPath.Text; $pass = $txtZipPass.Text.Trim(); $wl = $lblWlPath.Text
-    if (-not (Test-Path $zipPath)) { Write-Out "Selecciona un archivo ZIP primero." $cYellow; return }
-    $outDir  = [System.IO.Path]::Combine([System.IO.Path]::GetDirectoryName($zipPath), [System.IO.Path]::GetFileNameWithoutExtension($zipPath) + "_extraido")
-    $pyScript = @"
-import zipfile, os, sys
-path='ZIPPATH'; out='OUTDIR'; pwd='ZIPPASS'; wl='WLPATH'
-os.makedirs(out, exist_ok=True)
+$pZ = New-UtilCard "Quitar contrasena - ZIP" "Fuerza bruta con wordlist opcional" 265 165
+$lblZF  = New-FPicker $pZ 52 "ZIP (*.zip)|*.zip"
+$lblWLF = New-FPicker $pZ 74 "Wordlist (*.txt)|*.txt"
+$lblWLF.Text = "Sin wordlist (opcional)"
+$lblPL = New-Object Windows.Forms.Label; $lblPL.Text = "Contrasena:"; $lblPL.Location = New-Object Drawing.Point(10,98); $lblPL.Size = New-Object Drawing.Size(90,20); $lblPL.ForeColor = $cSubText; $pZ.Controls.Add($lblPL)
+$txtZP = New-Object Windows.Forms.TextBox; $txtZP.Location = New-Object Drawing.Point(103,96); $txtZP.Size = New-Object Drawing.Size(180,24); $txtZP.BackColor = [Drawing.Color]::FromArgb(15,25,50); $txtZP.ForeColor = $cText; $txtZP.UseSystemPasswordChar = $true; $pZ.Controls.Add($txtZP)
+$bZ = New-Btn "  Extraer/Desbloquear" 10 128 210 32 $pZ
+$bZ.Add_Click({
+    $zp = $lblZF.Text; $pass = $txtZP.Text.Trim(); $wl = $lblWLF.Text
+    if (-not (Test-Path $zp)) { Write-Out "Selecciona ZIP." $cYellow; return }
+    $od = [IO.Path]::Combine([IO.Path]::GetDirectoryName($zp),[IO.Path]::GetFileNameWithoutExtension($zp)+"_extraido")
+    $py = @"
+import zipfile,os,sys
+path=r'$zp'; out=r'$od'; pwd=r'$pass'; wl=r'$wl'
+os.makedirs(out,exist_ok=True)
 if pwd:
     try:
-        with zipfile.ZipFile(path) as z: z.extractall(out, pwd=pwd.encode())
-        print('OK:Extraido con contrasena en: ' + out); sys.exit()
-    except Exception as e: print('ERROR:' + str(e)); sys.exit()
+        with zipfile.ZipFile(path) as z: z.extractall(out,pwd=pwd.encode())
+        print('OK:'+out); sys.exit()
+    except Exception as e: print('ERROR:'+str(e)); sys.exit()
 try:
     with zipfile.ZipFile(path) as z: z.extractall(out)
-    print('OK:Extraido sin contrasena en: ' + out); sys.exit()
+    print('OK:'+out); sys.exit()
 except RuntimeError: pass
 if os.path.exists(wl):
     with open(wl,'r',errors='ignore') as f:
-        for i,line in enumerate(f):
-            p=line.strip()
+        for i,l in enumerate(f):
+            p=l.strip()
             try:
-                with zipfile.ZipFile(path) as z: z.extractall(out, pwd=p.encode())
-                print('OK:Contrasena: ' + p + ' | Extraido en: ' + out); sys.exit()
+                with zipfile.ZipFile(path) as z: z.extractall(out,pwd=p.encode())
+                print('OK:Pass='+p); sys.exit()
             except: pass
-            if i%500==0: print('INFO:Probadas ' + str(i) + ' contrasenas...')
-    print('ERROR:No se encontro la contrasena.')
-else:
-    print('ERROR:ZIP protegido. Ingresa contrasena o selecciona wordlist.')
+    print('ERROR:No encontrada')
+else: print('ERROR:ZIP protegido')
 "@
-    $pyScript = $pyScript.Replace('ZIPPATH',$zipPath).Replace('OUTDIR',$outDir).Replace('ZIPPASS',$pass).Replace('WLPATH',$wl)
-    $tmp = "$env:TEMP\unlock_zip.py"
-    $pyScript | Set-Content $tmp -Encoding UTF8
-    Write-Out "Procesando ZIP..." $cSubText
-    $res = python $tmp 2>&1
-    foreach ($line in $res) {
-        if ($line -like "OK:*")    { Write-Out $line.Replace("OK:","") $cGreen }
-        elseif ($line -like "ERROR:*") { Write-Out $line.Replace("ERROR:","") $cRed }
-        else { Write-Out $line $cSubText }
+    $py | Set-Content "$env:TEMP\ux_z.py" -Encoding UTF8
+    Start-Progress; $r = python "$env:TEMP\ux_z.py" 2>&1; Stop-Progress
+    $r | ForEach-Object { if ($_ -like "OK:*") { Write-Out $_.Substring(3) $cGreen } elseif ($_ -like "ERROR:*") { Write-Out $_.Substring(6) $cRed } else { Write-Out $_ $cSubText } }
+})
+
+# Hash
+$pH = New-UtilCard "Calcular Hash de Archivo" "MD5 / SHA1 / SHA256 / SHA512 — verifica integridad" 437 110
+$lblHF = New-FPicker $pH 52 "Todos (*.*)|*.*"
+$cmbH = New-Object Windows.Forms.ComboBox; $cmbH.Location = New-Object Drawing.Point(10,78); $cmbH.Size = New-Object Drawing.Size(90,26); $cmbH.BackColor = $cPanel; $cmbH.ForeColor = $cText; $cmbH.FlatStyle = "Flat"; $cmbH.DropDownStyle = "DropDownList"; $cmbH.Items.AddRange(@("MD5","SHA1","SHA256","SHA512")); $cmbH.SelectedIndex = 2; $pH.Controls.Add($cmbH)
+$bH = New-Btn "  Calcular" 108 75 155 32 $pH
+$bH.Add_Click({
+    $path = $lblHF.Text; if (-not (Test-Path $path)) { Write-Out "Selecciona archivo." $cYellow; return }
+    $h = Get-FileHash $path -Algorithm $cmbH.SelectedItem
+    Write-Out "[$($cmbH.SelectedItem)] $($h.Hash)" $cGreen
+    [Windows.Forms.Clipboard]::SetText($h.Hash); Write-Out "(Copiado al portapapeles)" $cSubText
+})
+
+# Renombrar lote
+$pR = New-UtilCard "Renombrar Archivos en Lote" "Prefijo, sufijo o reemplazar texto en nombres" 554 145
+$lblRF = New-Object Windows.Forms.Label; $lblRF.Text = "Ningun directorio"; $lblRF.Location = New-Object Drawing.Point(10,52); $lblRF.Size = New-Object Drawing.Size(600,18); $lblRF.ForeColor = $cSubText; $lblRF.Font = New-Object Drawing.Font("Consolas",7.5); $pR.Controls.Add($lblRF)
+$bRD = New-Object Windows.Forms.Button; $bRD.Text = "Carpeta"; $bRD.Location = New-Object Drawing.Point(638,49); $bRD.Size = New-Object Drawing.Size(110,24); $bRD.BackColor = $cCard; $bRD.ForeColor = $cText; $bRD.FlatStyle = "Flat"; $bRD.Font = New-Object Drawing.Font("Segoe UI",8); $bRD.Add_Click({ $d = New-Object Windows.Forms.FolderBrowserDialog; if ($d.ShowDialog() -eq "OK") { $lblRF.Text = $d.SelectedPath } }); $pR.Controls.Add($bRD)
+
+function LblTxt($t,$x,$y,$p) { $l = New-Object Windows.Forms.Label; $l.Text=$t; $l.Location=New-Object Drawing.Point($x,$y); $l.Size=New-Object Drawing.Size(55,20); $l.ForeColor=$cSubText; $l.Font=New-Object Drawing.Font("Segoe UI",8); $p.Controls.Add($l) }
+function TxtBox($x,$y,$w,$p) { $t = New-Object Windows.Forms.TextBox; $t.Location=New-Object Drawing.Point($x,$y); $t.Size=New-Object Drawing.Size($w,24); $t.BackColor=[Drawing.Color]::FromArgb(15,28,58); $t.ForeColor=$cText; $p.Controls.Add($t); return $t }
+
+LblTxt "Prefijo:" 10 80 $pR; $txtPre = TxtBox 68 78 90 $pR
+LblTxt "Sufijo:"  175 80 $pR; $txtSuf = TxtBox 228 78 90 $pR
+LblTxt "De:"      335 80 $pR; $txtRF = TxtBox 368 78 90 $pR; $txtRF.PlaceholderText = "buscar"
+LblTxt "A:"       470 80 $pR; $txtRT = TxtBox 490 78 90 $pR; $txtRT.PlaceholderText = "reemplazar"
+$bRen = New-Btn "  Renombrar" 10 108 170 30 $pR
+$bRen.Add_Click({
+    $f = $lblRF.Text; if (-not (Test-Path $f)) { Write-Out "Selecciona carpeta." $cYellow; return }
+    $cnt = 0
+    Get-ChildItem $f -File | ForEach-Object {
+        $n = $_.BaseName
+        if ($txtRF.Text) { $n = $n.Replace($txtRF.Text,$txtRT.Text) }
+        $n = "$($txtPre.Text)$n$($txtSuf.Text)$($_.Extension)"
+        if ($n -ne $_.Name) { Rename-Item $_.FullName $n -EA SilentlyContinue; $cnt++ }
     }
+    Write-Out "Renombrados: $cnt archivos" $cGreen
 })
+
+$scrollU.AutoScrollMinSize = New-Object Drawing.Size(870, 720)
 
 # ============================================================
-#   TAB 5: TRANSFERENCIA
+#   TAB 4: TRANSFERENCIA (nueva)
 # ============================================================
-New-SecLabel "Transferencia de Archivos" 10 10 $tabTransf
-
-$lblSrcPath           = New-Object Windows.Forms.Label
-$lblSrcPath.Text      = "Origen:  (ningun archivo/carpeta)"
-$lblSrcPath.Location  = New-Object Drawing.Point(10, 50)
-$lblSrcPath.Size      = New-Object Drawing.Size(700, 16)
-$lblSrcPath.ForeColor = $cText
-$lblSrcPath.Font      = New-Object Drawing.Font("Consolas", 8)
-$tabTransf.Controls.Add($lblSrcPath)
-
-$lblDstPath           = New-Object Windows.Forms.Label
-$lblDstPath.Text      = "Destino: (ninguna carpeta)"
-$lblDstPath.Location  = New-Object Drawing.Point(10, 72)
-$lblDstPath.Size      = New-Object Drawing.Size(700, 16)
-$lblDstPath.ForeColor = $cSubText
-$lblDstPath.Font      = New-Object Drawing.Font("Consolas", 8)
-$tabTransf.Controls.Add($lblDstPath)
-
-$b = New-Btn "Seleccionar Origen" 10 95 190 36 $tabTransf
-$b.Add_Click({
-    $dlg = New-Object Windows.Forms.OpenFileDialog; $dlg.Multiselect = $true
-    if ($dlg.ShowDialog() -eq "OK") { $lblSrcPath.Text = "Origen: " + ($dlg.FileNames -join "; ") }
-})
-
-$b2 = New-Btn "Seleccionar Destino" 210 95 190 36 $tabTransf
-$b2.Add_Click({
-    $dlg = New-Object Windows.Forms.FolderBrowserDialog
-    if ($dlg.ShowDialog() -eq "OK") { $lblDstPath.Text = "Destino: " + $dlg.SelectedPath }
-})
-
-$b3 = New-Btn "Copiar Archivos" 410 95 180 36 $tabTransf
-$b3.Add_Click({
-    $src = $lblSrcPath.Text.Replace("Origen: ","").Split("; ")
-    $dst = $lblDstPath.Text.Replace("Destino: ","")
-    if (-not (Test-Path $dst)) { Write-Out "Selecciona carpeta destino." $cYellow; return }
-    foreach ($f in $src) {
-        Copy-Item $f -Destination $dst -Force -EA SilentlyContinue
-        Write-Out "Copiado: $f -> $dst" $cGreen
-    }
-})
-
-$b4 = New-Btn "Mover Archivos" 600 95 180 36 $tabTransf
-$b4.Add_Click({
-    $src = $lblSrcPath.Text.Replace("Origen: ","").Split("; ")
-    $dst = $lblDstPath.Text.Replace("Destino: ","")
-    if (-not (Test-Path $dst)) { Write-Out "Selecciona carpeta destino." $cYellow; return }
-    foreach ($f in $src) {
-        Move-Item $f -Destination $dst -Force -EA SilentlyContinue
-        Write-Out "Movido: $f -> $dst" $cGreen
-    }
-})
-
-New-SecLabel "Robocopy / Sincronizacion" 10 145 $tabTransf
-
-$lblRoboSrc           = New-Object Windows.Forms.Label; $lblRoboSrc.Text = "Carpeta origen:  -"
-$lblRoboSrc.Location  = New-Object Drawing.Point(10, 178); $lblRoboSrc.Size = New-Object Drawing.Size(700, 16)
-$lblRoboSrc.ForeColor = $cText; $lblRoboSrc.Font = New-Object Drawing.Font("Consolas", 8)
-$tabTransf.Controls.Add($lblRoboSrc)
-
-$lblRoboDst           = New-Object Windows.Forms.Label; $lblRoboDst.Text = "Carpeta destino: -"
-$lblRoboDst.Location  = New-Object Drawing.Point(10, 196); $lblRoboDst.Size = New-Object Drawing.Size(700, 16)
-$lblRoboDst.ForeColor = $cSubText; $lblRoboDst.Font = New-Object Drawing.Font("Consolas", 8)
-$tabTransf.Controls.Add($lblRoboDst)
-
-$b = New-Btn "Origen Robocopy" 10 218 180 36 $tabTransf
-$b.Add_Click({ $dlg = New-Object Windows.Forms.FolderBrowserDialog; if ($dlg.ShowDialog() -eq "OK") { $lblRoboSrc.Text = "Carpeta origen:  " + $dlg.SelectedPath } })
-
-$b2 = New-Btn "Destino Robocopy" 200 218 180 36 $tabTransf
-$b2.Add_Click({ $dlg = New-Object Windows.Forms.FolderBrowserDialog; if ($dlg.ShowDialog() -eq "OK") { $lblRoboDst.Text = "Carpeta destino: " + $dlg.SelectedPath } })
-
-$b3 = New-Btn "Sincronizar (Robocopy)" 390 218 210 36 $tabTransf
-$b3.Add_Click({
-    $src = $lblRoboSrc.Text.Replace("Carpeta origen:  ","")
-    $dst = $lblRoboDst.Text.Replace("Carpeta destino: ","")
-    if (-not (Test-Path $src) -or -not (Test-Path $dst)) { Write-Out "Selecciona ambas carpetas." $cYellow; return }
-    Write-Out "Sincronizando con Robocopy..." $cSubText
-    Run-Cmd "robocopy `"$src`" `"$dst`" /MIR /Z /NP"
-})
-
-# ============================================================
-#   TAB 6: SISTEMA
-# ============================================================
-$infoBox           = New-Object Windows.Forms.RichTextBox
-$infoBox.Location  = New-Object Drawing.Point(5, 5)
-$infoBox.Size      = New-Object Drawing.Size(715, 370)
-$infoBox.BackColor = $cOutput
-$infoBox.ForeColor = $cAccent2
-$infoBox.Font      = New-Object Drawing.Font("Consolas", 9)
-$infoBox.ReadOnly  = $true
-$infoBox.BorderStyle = "None"
-$tabSystem.Controls.Add($infoBox)
-
-$b = New-Btn "  Cargar Info del Sistema" 5 382 220 36 $tabSystem
-$b.Add_Click({
-    $infoBox.Clear()
-    $osI  = Get-CimInstance Win32_OperatingSystem
-    $cpuI = Get-CimInstance Win32_Processor
-    $mem  = [math]::Round($osI.TotalVisibleMemorySize / 1MB, 2)
-    $free = [math]::Round($osI.FreePhysicalMemory / 1MB, 2)
-    $disk = Get-PSDrive C
-    $gpu  = (Get-CimInstance Win32_VideoController).Name
-    $infoBox.AppendText("=== INFORMACION DEL SISTEMA ===`r`n`r`n")
-    $infoBox.AppendText("SO              : $($osI.Caption)`r`n")
-    $infoBox.AppendText("Version         : $($osI.Version)`r`n")
-    $infoBox.AppendText("Arquitectura    : $($osI.OSArchitecture)`r`n")
-    $infoBox.AppendText("Procesador      : $($cpuI.Name)`r`n")
-    $infoBox.AppendText("Nucleos         : $($cpuI.NumberOfCores) nucleos / $($cpuI.NumberOfLogicalProcessors) logicos`r`n")
-    $infoBox.AppendText("RAM Total       : $mem GB`r`n")
-    $infoBox.AppendText("RAM Libre       : $free GB`r`n")
-    $infoBox.AppendText("Disco C: Libre  : $([math]::Round($disk.Free/1GB,2)) GB de $([math]::Round(($disk.Used+$disk.Free)/1GB,2)) GB`r`n")
-    $infoBox.AppendText("GPU             : $gpu`r`n")
-    $infoBox.AppendText("Equipo          : $env:COMPUTERNAME`r`n")
-    $infoBox.AppendText("Usuario         : $env:USERNAME`r`n")
-    $infoBox.AppendText("Directorio      : $env:USERPROFILE`r`n")
-    Write-Out "Informacion del sistema cargada." $cGreen
-})
-
-$b2 = New-Btn "  Ver Uptime" 235 382 160 36 $tabSystem
-$b2.Add_Click({
-    $boot = (Get-CimInstance Win32_OperatingSystem).LastBootUpTime
-    $up   = (Get-Date) - $boot
-    Write-Out "Uptime: $($up.Days)d $($up.Hours)h $($up.Minutes)m desde $boot" $cText
-})
-
-$b3 = New-Btn "  Buscar Actualizaciones" 405 382 200 36 $tabSystem
-$b3.Add_Click({ Start-Process ms-settings:windowsupdate })
-
-$b4 = New-Btn "  Drivers del Sistema" 615 382 100 36 $tabSystem
-$b4.Add_Click({ Run-Cmd "driverquery" })
-
-# ============================================================
-#   TAB 7: DASHBOARD
-# ============================================================
-New-SecLabel "Monitor en Tiempo Real" 10 8 $tabDash
-
-# Labels de metricas
-function New-MetricPanel($label, $x, $y, $parent) {
-    $pnl           = New-Object Windows.Forms.Panel
-    $pnl.Location  = New-Object Drawing.Point($x, $y)
-    $pnl.Size      = New-Object Drawing.Size(155, 70)
-    $pnl.BackColor = $cCard
-    $parent.Controls.Add($pnl)
-    $lbl           = New-Object Windows.Forms.Label
-    $lbl.Text      = $label
-    $lbl.Location  = New-Object Drawing.Point(8, 6)
-    $lbl.Size      = New-Object Drawing.Size(140, 18)
-    $lbl.ForeColor = $cSubText
-    $lbl.Font      = New-Object Drawing.Font("Segoe UI", 8)
-    $pnl.Controls.Add($lbl)
-    $val           = New-Object Windows.Forms.Label
-    $val.Text      = "..."
-    $val.Location  = New-Object Drawing.Point(8, 26)
-    $val.Size      = New-Object Drawing.Size(140, 36)
-    $val.ForeColor = $cAccent2
-    $val.Font      = New-Object Drawing.Font("Segoe UI", 18, [Drawing.FontStyle]::Bold)
-    $pnl.Controls.Add($val)
-    return $val
-}
-
-$lblCPU  = New-MetricPanel "CPU Uso"    10  40 $tabDash
-$lblRAM  = New-MetricPanel "RAM Uso"   175  40 $tabDash
-$lblDisk = New-MetricPanel "Disco C:"  340  40 $tabDash
-$lblNet  = New-MetricPanel "Red"       505  40 $tabDash
-
-# Procesos en tiempo real
-New-SecLabel "Procesos Activos" 10 125 $tabDash
-
-$procList              = New-Object Windows.Forms.ListView
-$procList.Location     = New-Object Drawing.Point(10, 152)
-$procList.Size         = New-Object Drawing.Size(700, 230)
-$procList.View         = "Details"
-$procList.BackColor    = $cOutput
-$procList.ForeColor    = $cText
-$procList.Font         = New-Object Drawing.Font("Consolas", 8)
-$procList.FullRowSelect= $true
-$procList.GridLines    = $true
-$procList.Columns.Add("PID",   60) | Out-Null
-$procList.Columns.Add("Nombre", 200) | Out-Null
-$procList.Columns.Add("CPU%",  80) | Out-Null
-$procList.Columns.Add("Mem MB",90) | Out-Null
-$procList.Columns.Add("Estado",100)| Out-Null
-$tabDash.Controls.Add($procList)
-
-$b = New-Btn "Actualizar Procesos" 10 392 190 36 $tabDash
-$b.Add_Click({
-    $procList.Items.Clear()
-    Get-Process | Sort-Object CPU -Descending | Select-Object -First 30 | ForEach-Object {
-        $item = New-Object Windows.Forms.ListViewItem($_.Id.ToString())
-        $item.SubItems.Add($_.ProcessName) | Out-Null
-        $item.SubItems.Add([math]::Round($_.CPU,1).ToString()) | Out-Null
-        $item.SubItems.Add([math]::Round($_.WorkingSet64/1MB,1).ToString()) | Out-Null
-        $estado = if ($_.Responding) { "Activo" } else { "No responde" }
-        $item.SubItems.Add($estado) | Out-Null
-        $procList.Items.Add($item) | Out-Null
-    }
-    Write-Out "Lista de procesos actualizada." $cGreen
-})
-
-$b2 = New-Btn "Terminar Proceso" 210 392 170 36 $tabDash
-$b2.Add_Click({
-    if ($procList.SelectedItems.Count -eq 0) { Write-Out "Selecciona un proceso." $cYellow; return }
-    $pid = $procList.SelectedItems[0].Text
-    Stop-Process -Id $pid -Force -EA SilentlyContinue
-    Write-Out "Proceso PID $pid terminado." $cGreen
-})
-
-# ── Runspace para métricas en segundo plano (no bloquea la UI) ──
-$script:metricsData = [hashtable]::Synchronized(@{ cpu=0; ram=0; disk=0; net=0 })
-
-$rsPool = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspacePool(1, 2)
-$rsPool.ApartmentState = "MTA"
-$rsPool.Open()
-
-function Start-MetricsJob {
-    $ps = [System.Management.Automation.PowerShell]::Create()
-    $ps.RunspacePool = $rsPool
-    [void]$ps.AddScript({
-        param($data)
-        while ($true) {
-            try {
-                $w = Get-WmiObject Win32_Processor
-                $data.cpu = [math]::Round($w.LoadPercentage, 0)
-            } catch {}
-            try {
-                $o = Get-WmiObject Win32_OperatingSystem
-                $data.ram = [math]::Round(100 - ($o.FreePhysicalMemory / $o.TotalVisibleMemorySize * 100), 0)
-            } catch {}
-            try {
-                $d = Get-PSDrive C -ErrorAction SilentlyContinue
-                if ($d) { $data.disk = [math]::Round($d.Used / ($d.Used + $d.Free) * 100, 0) }
-            } catch {}
-            try {
-                $n = Get-WmiObject Win32_PerfFormattedData_Tcpip_NetworkInterface -ErrorAction SilentlyContinue
-                if ($n) { $data.net = [math]::Round(($n | Measure-Object BytesReceivedPerSec -Sum).Sum / 1KB, 1) }
-            } catch {}
-            Start-Sleep -Seconds 2
-        }
-    })
-    [void]$ps.AddParameter("data", $script:metricsData)
-    [void]$ps.BeginInvoke()
-}
-Start-MetricsJob
-
-# Timer solo lee el hashtable compartido — instantáneo, sin bloqueo
-$timerDash = New-Object Windows.Forms.Timer
-$timerDash.Interval = 2000
-$timerDash.Add_Tick({
-    try {
-        $cpu  = $script:metricsData.cpu
-        $ramP = $script:metricsData.ram
-        $dskP = $script:metricsData.disk
-        $kbps = $script:metricsData.net
-
-        $lblCPU.Text  = "$cpu%"
-        $lblRAM.Text  = "$ramP%"
-        $lblDisk.Text = "$dskP%"
-        $lblNet.Text  = "$kbps KB/s"
-
-        if ($cpu  -gt 80) { $lblCPU.ForeColor  = $cRed } elseif ($cpu  -gt 50) { $lblCPU.ForeColor  = $cYellow } else { $lblCPU.ForeColor  = $cGreen }
-        if ($ramP -gt 85) { $lblRAM.ForeColor  = $cRed } elseif ($ramP -gt 60) { $lblRAM.ForeColor  = $cYellow } else { $lblRAM.ForeColor  = $cGreen }
-        if ($dskP -gt 90) { $lblDisk.ForeColor = $cRed } elseif ($dskP -gt 70) { $lblDisk.ForeColor = $cYellow } else { $lblDisk.ForeColor = $cGreen }
-    } catch {}
-})
-$timerDash.Start()
-
-# ============================================================
-#   TAB 8: REPORTES
-# ============================================================
-New-SecLabel "Generar Reportes del Sistema" 10 10 $tabReports
-
-$reportBox           = New-Object Windows.Forms.RichTextBox
-$reportBox.Location  = New-Object Drawing.Point(5, 40)
-$reportBox.Size      = New-Object Drawing.Size(715, 370)
-$reportBox.BackColor = $cOutput
-$reportBox.ForeColor = $cAccent2
-$reportBox.Font      = New-Object Drawing.Font("Consolas", 8)
-$reportBox.ReadOnly  = $true
-$reportBox.BorderStyle = "None"
-$tabReports.Controls.Add($reportBox)
-
-$b = New-Btn "Reporte Completo" 5 420 180 36 $tabReports
-$b.Add_Click({
-    $reportBox.Clear()
-    $osR  = Get-CimInstance Win32_OperatingSystem
-    $cpuR = Get-CimInstance Win32_Processor
-    $gpuR = Get-CimInstance Win32_VideoController
-    $netR = Get-NetAdapter | Where-Object { $_.Status -eq "Up" }
-    $reportBox.AppendText("========================================`r`n")
-    $reportBox.AppendText("   REPORTE COMPLETO - $(Get-Date -Format 'dd/MM/yyyy HH:mm:ss')`r`n")
-    $reportBox.AppendText("========================================`r`n`r`n")
-    $reportBox.AppendText("[SISTEMA OPERATIVO]`r`n")
-    $reportBox.AppendText("  $($osR.Caption) - Build $($osR.BuildNumber)`r`n`r`n")
-    $reportBox.AppendText("[PROCESADOR]`r`n")
-    $reportBox.AppendText("  $($cpuR.Name)`r`n")
-    $reportBox.AppendText("  $($cpuR.NumberOfCores) nucleos | $($cpuR.NumberOfLogicalProcessors) hilos`r`n`r`n")
-    $reportBox.AppendText("[MEMORIA RAM]`r`n")
-    $mem = [math]::Round($osR.TotalVisibleMemorySize/1MB,2)
-    $free= [math]::Round($osR.FreePhysicalMemory/1MB,2)
-    $reportBox.AppendText("  Total: $mem GB | Libre: $free GB`r`n`r`n")
-    $reportBox.AppendText("[GPU]`r`n")
-    $reportBox.AppendText("  $($gpuR.Name)`r`n`r`n")
-    $reportBox.AppendText("[RED]`r`n")
-    foreach ($a in $netR) { $reportBox.AppendText("  $($a.Name): $($a.LinkSpeed)`r`n") }
-    $reportBox.AppendText("`r`n[DISCO C:]`r`n")
-    $disk = Get-PSDrive C
-    $reportBox.AppendText("  Libre: $([math]::Round($disk.Free/1GB,2)) GB | Total: $([math]::Round(($disk.Used+$disk.Free)/1GB,2)) GB`r`n")
-    Write-Out "Reporte generado." $cGreen
-})
-
-$b2 = New-Btn "Exportar a TXT" 195 420 160 36 $tabReports
-$b2.Add_Click({
-    $dlg = New-Object Windows.Forms.SaveFileDialog
-    $dlg.Filter = "Text (*.txt)|*.txt"
-    $dlg.FileName = "SysCodi_Reporte_$(Get-Date -Format 'yyyyMMdd_HHmmss').txt"
-    if ($dlg.ShowDialog() -eq "OK") {
-        $reportBox.Text | Set-Content $dlg.FileName -Encoding UTF8
-        Write-Out "Reporte guardado en: $($dlg.FileName)" $cGreen
-    }
-})
-
-$b3 = New-Btn "Reporte de Red" 365 420 160 36 $tabReports
-$b3.Add_Click({
-    $reportBox.Clear()
-    $reportBox.AppendText("=== REPORTE DE RED - $(Get-Date -Format 'dd/MM/yyyy HH:mm:ss') ===`r`n`r`n")
-    $adapters = Get-NetAdapter
-    foreach ($a in $adapters) {
-        $reportBox.AppendText("Adaptador: $($a.Name)`r`n")
-        $reportBox.AppendText("  Estado : $($a.Status)`r`n")
-        $reportBox.AppendText("  Velocidad: $($a.LinkSpeed)`r`n")
-        $ip = (Get-NetIPAddress -InterfaceIndex $a.ifIndex -EA SilentlyContinue | Where-Object AddressFamily -eq "IPv4").IPAddress
-        $reportBox.AppendText("  IP     : $ip`r`n`r`n")
-    }
-    Write-Out "Reporte de red generado." $cGreen
-})
-
-# ============================================================
-#   TAB 9: AJUSTES
-# ============================================================
-New-SecLabel "Configuracion de la Aplicacion" 10 10 $tabSettings
-
-$cbStartAdmin           = New-Object Windows.Forms.CheckBox
-$cbStartAdmin.Text      = "Ejecutar siempre como Administrador (acceso directo)"
-$cbStartAdmin.Location  = New-Object Drawing.Point(10, 42)
-$cbStartAdmin.Size      = New-Object Drawing.Size(500, 24)
-$cbStartAdmin.ForeColor = $cText; $cbStartAdmin.BackColor = $cBg
-$tabSettings.Controls.Add($cbStartAdmin)
-
-$cbAutoUpdate           = New-Object Windows.Forms.CheckBox
-$cbAutoUpdate.Text      = "Verificar actualizaciones de Windows al iniciar"
-$cbAutoUpdate.Location  = New-Object Drawing.Point(10, 70)
-$cbAutoUpdate.Size      = New-Object Drawing.Size(500, 24)
-$cbAutoUpdate.ForeColor = $cText; $cbAutoUpdate.BackColor = $cBg
-$tabSettings.Controls.Add($cbAutoUpdate)
-
-New-SecLabel "Acciones Rapidas del Sistema" 10 108 $tabSettings
-
-$b  = New-Btn "Reiniciar Explorer"      10 138 185 36 $tabSettings
-$b.Add_Click({ Stop-Process -Name explorer -Force; Start-Process explorer; Write-Out "Explorer reiniciado." $cGreen })
-
-$b2 = New-Btn "Liberar Memoria RAM"    205 138 185 36 $tabSettings
-$b2.Add_Click({ [System.GC]::Collect(); Write-Out "Memoria liberada (GC)." $cGreen })
-
-$b3 = New-Btn "Limpiar Portapapeles"   400 138 185 36 $tabSettings
-$b3.Add_Click({ [System.Windows.Forms.Clipboard]::Clear(); Write-Out "Portapapeles limpiado." $cGreen })
-
-$b4 = New-Btn "Crear Punto Restauracion" 10 184 220 36 $tabSettings
-$b4.Add_Click({
-    Write-Out "Creando punto de restauracion..." $cSubText
-    Run-Cmd 'Checkpoint-Computer -Description "SysCodi Backup" -RestorePointType "MODIFY_SETTINGS"'
-    Write-Out "Punto de restauracion creado." $cGreen
-})
-
-$b5 = New-Btn "Verificar Sistema (SFC)" 240 184 210 36 $tabSettings
-$b5.Add_Click({ Run-Cmd "sfc /verifyonly" })
-
-New-SecLabel "Informacion de la Aplicacion" 10 232 $tabSettings
-
-$lblAbout           = New-Object Windows.Forms.Label
-$lblAbout.Text      = "SysCodi WinTool Pro v2.5  |  Desarrollado por SysCodi  |  Requiere PowerShell 5.1+"
-$lblAbout.Location  = New-Object Drawing.Point(10, 262)
-$lblAbout.Size      = New-Object Drawing.Size(700, 20)
-$lblAbout.ForeColor = $cSubText
-$lblAbout.Font      = New-Object Drawing.Font("Segoe UI", 8)
-$tabSettings.Controls.Add($lblAbout)
-
-$lblAbout2           = New-Object Windows.Forms.Label
-$lblAbout2.Text      = "Usa WinGet como gestor de paquetes. Ejecutar como Administrador para funcionalidad completa."
-$lblAbout2.Location  = New-Object Drawing.Point(10, 284)
-$lblAbout2.Size      = New-Object Drawing.Size(700, 20)
-$lblAbout2.ForeColor = $cSubText
-$lblAbout2.Font      = New-Object Drawing.Font("Segoe UI", 8)
-$tabSettings.Controls.Add($lblAbout2)
-
-# ============================================================
-#   PANEL INFERIOR - Info rapida + Accesos + Acciones + Estado
-# ============================================================
-$bottomPanel           = New-Object Windows.Forms.Panel
-$bottomPanel.Location  = New-Object Drawing.Point(0, 592)
-$bottomPanel.Size      = New-Object Drawing.Size(1200, 90)
-$bottomPanel.BackColor = $cPanel
-$form.Controls.Add($bottomPanel)
-
-# Info rapida
-$pnlQuick           = New-Object Windows.Forms.Panel
-$pnlQuick.Location  = New-Object Drawing.Point(5, 5)
-$pnlQuick.Size      = New-Object Drawing.Size(290, 80)
-$pnlQuick.BackColor = $cCard
-$bottomPanel.Controls.Add($pnlQuick)
-
-$lblQuickTitle           = New-Object Windows.Forms.Label
-$lblQuickTitle.Text      = "Informacion rapida"
-$lblQuickTitle.Location  = New-Object Drawing.Point(6, 4)
-$lblQuickTitle.Size      = New-Object Drawing.Size(278, 16)
-$lblQuickTitle.ForeColor = $cAccent2
-$lblQuickTitle.Font      = New-Object Drawing.Font("Segoe UI", 8, [Drawing.FontStyle]::Bold)
-$pnlQuick.Controls.Add($lblQuickTitle)
-
-$lblCPUQ   = New-Object Windows.Forms.Label; $lblCPUQ.Location  = New-Object Drawing.Point(6,22)
-$lblCPUQ.Size = New-Object Drawing.Size(130,16); $lblCPUQ.ForeColor = $cText; $lblCPUQ.Font = New-Object Drawing.Font("Segoe UI",7); $lblCPUQ.Text = "CPU: ..."; $pnlQuick.Controls.Add($lblCPUQ)
-$lblRAMQ   = New-Object Windows.Forms.Label; $lblRAMQ.Location  = New-Object Drawing.Point(145,22)
-$lblRAMQ.Size = New-Object Drawing.Size(130,16); $lblRAMQ.ForeColor = $cText; $lblRAMQ.Font = New-Object Drawing.Font("Segoe UI",7); $lblRAMQ.Text = "RAM: ..."; $pnlQuick.Controls.Add($lblRAMQ)
-$lblDiskQ  = New-Object Windows.Forms.Label; $lblDiskQ.Location = New-Object Drawing.Point(6,40)
-$lblDiskQ.Size = New-Object Drawing.Size(130,16); $lblDiskQ.ForeColor = $cText; $lblDiskQ.Font = New-Object Drawing.Font("Segoe UI",7); $lblDiskQ.Text = "Disco C: ..."; $pnlQuick.Controls.Add($lblDiskQ)
-$lblNetQ   = New-Object Windows.Forms.Label; $lblNetQ.Location  = New-Object Drawing.Point(145,40)
-$lblNetQ.Size = New-Object Drawing.Size(130,16); $lblNetQ.ForeColor = $cText; $lblNetQ.Font = New-Object Drawing.Font("Segoe UI",7); $lblNetQ.Text = "Red: ..."; $pnlQuick.Controls.Add($lblNetQ)
-
-# Timer para info rapida en footer
-$timerQuick = New-Object Windows.Forms.Timer
-$timerQuick.Interval = 3000
-$timerQuick.Add_Tick({
-    try {
-        $c  = $script:metricsData.cpu
-        $r  = $script:metricsData.ram
-        $d  = Get-PSDrive C -ErrorAction SilentlyContinue
-        $dp = 0; $df = 0
-        if ($d) { $dp = [math]::Round($d.Used/($d.Used+$d.Free)*100,0); $df = [math]::Round($d.Free/1GB,0) }
-        $lblCPUQ.Text  = "CPU Uso: $c%"
-        $lblRAMQ.Text  = "RAM Uso: $r%"
-        $lblDiskQ.Text = "Disco C: $dp% | Libre: ${df}GB"
-        $lblNetQ.Text  = "Red: $($script:metricsData.net) KB/s"
-    } catch {}
-})
-$timerQuick.Start()
-
-# Accesos rapidos
-$pnlAccess           = New-Object Windows.Forms.Panel
-$pnlAccess.Location  = New-Object Drawing.Point(300, 5)
-$pnlAccess.Size      = New-Object Drawing.Size(420, 80)
-$pnlAccess.BackColor = $cCard
-$bottomPanel.Controls.Add($pnlAccess)
-
-$lblAccTitle           = New-Object Windows.Forms.Label
-$lblAccTitle.Text      = "Accesos rapidos"
-$lblAccTitle.Location  = New-Object Drawing.Point(6, 4)
-$lblAccTitle.Size      = New-Object Drawing.Size(408, 16)
-$lblAccTitle.ForeColor = $cAccent2
-$lblAccTitle.Font      = New-Object Drawing.Font("Segoe UI", 8, [Drawing.FontStyle]::Bold)
-$pnlAccess.Controls.Add($lblAccTitle)
-
-$shortcuts = @(
-    @{name="Explorador";       cmd={Start-Process explorer}},
-    @{name="Adm. Dispositivos";cmd={Start-Process devmgmt.msc}},
-    @{name="Adm. Discos";      cmd={Start-Process diskmgmt.msc}},
-    @{name="Servicios";        cmd={Start-Process services.msc}},
-    @{name="Eventos";          cmd={Start-Process eventvwr.msc}},
-    @{name="Panel Control";    cmd={Start-Process control}}
-)
-$xA = 5; $yA = 24; $colA = 0
-foreach ($sc in $shortcuts) {
-    $sb           = New-Object Windows.Forms.Button
-    $sb.Text      = $sc.name
-    $sb.Location  = New-Object Drawing.Point($xA, $yA)
-    $sb.Size      = New-Object Drawing.Size(128, 24)
-    $sb.BackColor = [Drawing.Color]::FromArgb(0, 70, 140)
-    $sb.ForeColor = $cText
-    $sb.FlatStyle = "Flat"
-    $sb.Font      = New-Object Drawing.Font("Segoe UI", 7)
-    $sb.Cursor    = "Hand"
-    $cmd = $sc.cmd
-    $sb.Add_Click($cmd)
-    $pnlAccess.Controls.Add($sb)
-    $colA++; $xA += 133
-    if ($colA -ge 3) { $colA = 0; $xA = 5; $yA += 28 }
-}
-
-# Acciones rapidas
-$pnlActions           = New-Object Windows.Forms.Panel
-$pnlActions.Location  = New-Object Drawing.Point(725, 5)
-$pnlActions.Size      = New-Object Drawing.Size(340, 80)
-$pnlActions.BackColor = $cCard
-$bottomPanel.Controls.Add($pnlActions)
-
-$lblActTitle           = New-Object Windows.Forms.Label
-$lblActTitle.Text      = "Acciones rapidas"
-$lblActTitle.Location  = New-Object Drawing.Point(6, 4)
-$lblActTitle.Size      = New-Object Drawing.Size(328, 16)
-$lblActTitle.ForeColor = $cAccent2
-$lblActTitle.Font      = New-Object Drawing.Font("Segoe UI", 8, [Drawing.FontStyle]::Bold)
-$pnlActions.Controls.Add($lblActTitle)
-
-$actions = @(
-    @{name="Reiniciar Explorer"; cmd={Stop-Process -Name explorer -Force; Start-Process explorer; Write-Out "Explorer reiniciado." $cGreen}},
-    @{name="Liberar Memoria";    cmd={[System.GC]::Collect(); Write-Out "Memoria liberada." $cGreen}},
-    @{name="Limpiar Portapapeles";cmd={[System.Windows.Forms.Clipboard]::Clear(); Write-Out "Portapapeles limpiado." $cGreen}},
-    @{name="Crear Pto. Restauracion";cmd={Run-Cmd 'Checkpoint-Computer -Description "SysCodi" -RestorePointType "MODIFY_SETTINGS"'}}
-)
-$xAc = 5; $yAc = 24; $colAc = 0
-foreach ($ac in $actions) {
-    $ab           = New-Object Windows.Forms.Button
-    $ab.Text      = $ac.name
-    $ab.Location  = New-Object Drawing.Point($xAc, $yAc)
-    $ab.Size      = New-Object Drawing.Size(162, 24)
-    $ab.BackColor = [Drawing.Color]::FromArgb(0, 70, 140)
-    $ab.ForeColor = $cText
-    $ab.FlatStyle = "Flat"
-    $ab.Font      = New-Object Drawing.Font("Segoe UI", 7)
-    $ab.Cursor    = "Hand"
-    $cmd = $ac.cmd
-    $ab.Add_Click($cmd)
-    $pnlActions.Controls.Add($ab)
-    $colAc++; $xAc += 167
-    if ($colAc -ge 2) { $colAc = 0; $xAc = 5; $yAc += 28 }
-}
-
-# Estado
-$pnlStatus           = New-Object Windows.Forms.Panel
-$pnlStatus.Location  = New-Object Drawing.Point(1070, 5)
-$pnlStatus.Size      = New-Object Drawing.Size(125, 80)
-$pnlStatus.BackColor = $cCard
-$bottomPanel.Controls.Add($pnlStatus)
-
-$lblStatusTitle           = New-Object Windows.Forms.Label
-$lblStatusTitle.Text      = "Estado"
-$lblStatusTitle.Location  = New-Object Drawing.Point(6, 4)
-$lblStatusTitle.Size      = New-Object Drawing.Size(113, 16)
-$lblStatusTitle.ForeColor = $cAccent2
-$lblStatusTitle.Font      = New-Object Drawing.Font("Segoe UI", 8, [Drawing.FontStyle]::Bold)
-$pnlStatus.Controls.Add($lblStatusTitle)
-
-$lblStatusIcon           = New-Object Windows.Forms.Label
-$lblStatusIcon.Text      = "OK"
-$lblStatusIcon.Location  = New-Object Drawing.Point(35, 22)
-$lblStatusIcon.Size      = New-Object Drawing.Size(55, 26)
-$lblStatusIcon.ForeColor = $cGreen
-$lblStatusIcon.Font      = New-Object Drawing.Font("Segoe UI", 14, [Drawing.FontStyle]::Bold)
-$pnlStatus.Controls.Add($lblStatusIcon)
-
-$lblStatusText           = New-Object Windows.Forms.Label
-$lblStatusText.Text      = "Todo correcto"
-$lblStatusText.Location  = New-Object Drawing.Point(6, 48)
-$lblStatusText.Size      = New-Object Drawing.Size(113, 16)
-$lblStatusText.ForeColor = $cGreen
-$lblStatusText.Font      = New-Object Drawing.Font("Segoe UI", 7)
-$lblStatusText.TextAlign = "MiddleCenter"
-$pnlStatus.Controls.Add($lblStatusText)
-
-$btnVerify           = New-Object Windows.Forms.Button
-$btnVerify.Text      = "Verificar sistema"
-$btnVerify.Location  = New-Object Drawing.Point(6, 64)
-$btnVerify.Size      = New-Object Drawing.Size(113, 14)
-$btnVerify.BackColor = $cBtn
-$btnVerify.ForeColor = $cText
-$btnVerify.FlatStyle = "Flat"
-$btnVerify.Font      = New-Object Drawing.Font("Segoe UI", 6)
-$btnVerify.Cursor    = "Hand"
-$btnVerify.Add_Click({ Write-Out "Sistema verificado - Todo correcto." $cGreen })
-$pnlStatus.Controls.Add($btnVerify)
-
-# ============================================================
-#   FOOTER
-# ============================================================
-$footer           = New-Object Windows.Forms.Label
-$footer.Text      = "  Ejecutar siempre como Administrador para mejor rendimiento                                                              Desarrollado por SysCodi                    Version 2.5 Pro"
-$footer.Location  = New-Object Drawing.Point(0, 686)
-$footer.Size      = New-Object Drawing.Size(1200, 24)
-$footer.TextAlign = "MiddleLeft"
-$footer.ForeColor = $cSubText
-$footer.BackColor = [Drawing.Color]::FromArgb(8, 14, 30)
-$footer.Font      = New-Object Drawing.Font("Segoe UI", 7)
-$form.Controls.Add($footer)
-
-# ============================================================
-$form.ShowDialog()
-$timerClock.Stop(); $timerDash.Stop(); $timerQuick.Stop()
-try { $rsPool.Close(); $rsPool.Dispose() } catch {}
+$pTrans = $tabPanels[4]
+$lblTransInfo = New-Object Windows.Forms.Label
+$lblTransInfo.Text      = "Modulo de Transferencia de Archivos"
+$lblTransInfo.Location  = New-Object Drawing.Point(20, 20)
+$lblTransInfo.Size      = New-Object Drawing.Size(700, 30)
+$lblTransInfo.ForeColor = $cAccent2
+$lblTransInfo.Font      = New-Object Drawing.Font("Segoe UI", 12, [Drawing.FontStyle]::Bold)
+$pTrans.Controls.Add($lblTransInfo)
+
+# Copiar carpeta
+$pCopy = New-Object Windows.Forms.Panel; $pCopy.Location = New-Object Drawing.Point(5,60); $pCopy.Size = New-Object Drawing.Size(860,130); $pCopy.BackColor = $cCard; $pTrans.Controls.Add($pCopy)
+$ltC = New-Object Windows.Forms.Label; $ltC.Text = "  Copiar Carpeta con Progreso"; $ltC.Location = New-Object Drawing.Point(0,0); $ltC.Size = New-Object Drawing.Size(860,28); $ltC.ForeColor = $cAccent2; $ltC.BackColor = [Drawing.Color]::FromArgb(18,35,72); $ltC.Font = New-Object Drawing.Font("Segoe UI",10,[Drawing.FontStyle]::Bold); $ltC.TextAlign = "MiddleLeft"; $pCopy.Controls.Add($ltC)
+$lblSrcPath = New-Object Windows.Forms.Label; $lblSrcPath.Text = "Origen: (no seleccionado)"; $lblSrcPath.Location = New-Object Drawing.Point(10,34); $lblSrcPath.Size = New-Object Drawing.Size(700,18); $lblSrcPath.ForeColor = $cSubText; $pCopy.Controls.Add($lblSrcPath)
+$btnSrc = New-Object Windows.Forms.Button; $btnSrc.Text = "Origen"; $btnSrc.Location = New-Object Drawing.Point(720,31); $btnSrc.Size = New-Object Drawing.Size(130,24); $btnSrc.BackColor = $cCard; $btnSrc.ForeColor = $cText; $btnSrc.FlatStyle = "Flat"; $btnSrc.Add_Click({ $d = New-Object Windows.Forms.FolderBrowserDialog; if ($d.ShowDialog() -eq "OK") { $lblSrcPath.Text = "Origen: $($d.SelectedPath)" } }); $pCopy.Controls.Add($btnSrc)
+$lblDstPath = New-Object Windows.Forms.Label; $lblDstPath.Text = "Destino: (no seleccionado)"; $lblDstPath.Location = New-Object Drawing.Point(10,58); $lblDstPath.Size = New-Object Drawing.Size(700,18); $lblDstPath.ForeColor = $cSubText; $pCopy.Controls.Add($lblDstPath)
+$btnDst = New-Object Windows.Forms.Button; $btnDst.Text = "Destino"; $btnDst.Location = New-Object Drawing.Point(720,55); $btnDst.Size = New-Object Drawing.Size(130,24); $btnDst.BackColor = $cCard; $btnDst.ForeColor = $cText; $btnDst.FlatStyle = "Flat"; $btnDst.Add_Click({ $d = New-Object Windows.Forms.FolderBrowserDialog; if ($d.ShowDialog() -eq "OK") { $lblDstPath.Text = "Destino: $($d.SelectedPath)" } }); $pCopy.Controls.Add($btnDst
