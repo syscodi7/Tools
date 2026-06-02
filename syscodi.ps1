@@ -1,10 +1,3 @@
-¡Ya veo exactamente qué causó el desastre! El comando `iex` intentó ejecutar **mi explicación de texto** (los puntos 1, 2 y 3 con asteriscos `Adiós...`) pensando que era parte del código de PowerShell, sumado a un problema de codificación de caracteres (`Ã³`, `Ã­`) por la codificación de la consola.
-
-Para evitar que `iex` se confunda con comentarios o explicaciones de texto, aquí tienes **exclusivamente el código puro**, sin una sola palabra de texto fuera de las etiquetas de PowerShell.
-
-Sube exactamente este código limpio a tu repositorio de GitHub para que funcione de forma inmediata:
-
-```powershell
 #Requires -Version 5.1
 
 Add-Type -AssemblyName System.Windows.Forms
@@ -508,5 +501,3 @@ $timer.Start()
 
 $form.Add_FormClosing({ $timer.Stop() })
 $form.ShowDialog() | Out-Null
-
-```
