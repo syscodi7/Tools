@@ -1,24 +1,16 @@
-El error persistía porque `iex` (Invoke-Expression) analiza los bloques de código remotos de una manera extremadamente estricta y se seguía confundiendo con las llaves inline, las comas de parámetros o operaciones matemáticas implícitas como `($s.Width - 1)` dentro de los bloques de dibujo.
+¡Ya veo exactamente qué causó el desastre! El comando `iex` intentó ejecutar **mi explicación de texto** (los puntos 1, 2 y 3 con asteriscos `Adiós...`) pensando que era parte del código de PowerShell, sumado a un problema de codificación de caracteres (`Ã³`, `Ã­`) por la codificación de la consola.
 
-Para resolver esto **de forma definitiva y asegurada para `iex**`, he realizado una reestructuración absoluta del código bajo estas reglas de análisis remoto:
+Para evitar que `iex` se confunda con comentarios o explicaciones de texto, aquí tienes **exclusivamente el código puro**, sin una sola palabra de texto fuera de las etiquetas de PowerShell.
 
-1. **Adiós a los métodos inline complejos:** Todas las operaciones matemáticas de dimensiones y coordenadas ahora se calculan en variables locales simples separadas antes de usarse.
-2. **Brushes y Pens aislados:** No se instancia ningún objeto dentro de los parámetros de dibujo.
-3. **Conversión explícita de tipos:** Se eliminaron las ambigüedades de firmas de métodos que causaban que el motor de `iex` no supiera qué sobrecarga de función llamabas.
-
-Aquí tienes el script completo y corregido. Pruébalo directamente con tu comando de GitHub:
+Sube exactamente este código limpio a tu repositorio de GitHub para que funcione de forma inmediata:
 
 ```powershell
 #Requires -Version 5.1
-# SysCodi WinTool - Réplica e Integración Completa de Interfaz Moderna (Optimizado Estricto para IEX)
 
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 [Windows.Forms.Application]::EnableVisualStyles()
 
-# ============================================================
-# COMPROBACIÓN DE ADMINISTRADOR
-# ============================================================
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
     $r = [Windows.Forms.MessageBox]::Show("Esta herramienta requiere privilegios de Administrador. ¿Deseas reiniciar como Administrador?", "SysCodi - Privilegios", "YesNo", "Warning")
@@ -28,9 +20,6 @@ if (-not $isAdmin) {
     exit
 }
 
-# ============================================================
-# GESTIÓN DE LOGS
-# ============================================================
 $logDir = "C:\SysCodi\logs"
 if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
 $logFile = "$logDir\$(Get-Date -Format 'yyyy-MM-dd').log"
@@ -38,9 +27,6 @@ function Write-Log($m) {
     Add-Content $logFile "[$(Get-Date -Format 'HH:mm:ss')] $m" -Encoding UTF8 -EA SilentlyContinue 
 }
 
-# ============================================================
-# PALETA DE COLORES EXACTA (Diseño Oscuro Profesional)
-# ============================================================
 $cBgMain    = [Drawing.Color]::FromArgb(6, 12, 28) 
 $cBgSide    = [Drawing.Color]::FromArgb(10, 16, 32) 
 $cBgCard    = [Drawing.Color]::FromArgb(13, 21, 41) 
@@ -51,9 +37,6 @@ $cText      = [Drawing.Color]::FromArgb(226, 232, 240)
 $cSubText   = [Drawing.Color]::FromArgb(144, 168, 192) 
 $cGreen     = [Drawing.Color]::FromArgb(46, 204, 113)
 
-# ============================================================
-# FUENTES
-# ============================================================
 $fTitle    = New-Object Drawing.Font("Segoe UI", 12, [Drawing.FontStyle]::Bold)
 $fSubTitle = New-Object Drawing.Font("Segoe UI", 8)
 $fMenu     = New-Object Drawing.Font("Segoe UI", 9)
@@ -62,9 +45,6 @@ $fCardDesc = New-Object Drawing.Font("Segoe UI", 8)
 $fStatus   = New-Object Drawing.Font("Segoe UI", 8.5)
 $fClock    = New-Object Drawing.Font("Consolas", 9)
 
-# ============================================================
-# CONFIGURACIÓN DEL FORMULARIO PRINCIPAL
-# ============================================================
 $form = New-Object Windows.Forms.Form
 $form.Text          = "SysCodi WinTool"
 $form.Size          = New-Object Drawing.Size(1200, 780)
@@ -79,9 +59,6 @@ $mainContainer.Dock = "Fill"
 $mainContainer.Padding = $mainPadding
 $form.Controls.Add($mainContainer)
 
-# ============================================================
-# HELPERS DE DIBUJO (Sintaxis ultra-limpia para evitar ParserErrors)
-# ============================================================
 function Get-RoundedPath($rect, $radius) {
     $path = New-Object Drawing.Drawing2D.GraphicsPath
     $diameter = $radius * 2
@@ -98,9 +75,6 @@ function Get-RoundedPath($rect, $radius) {
     return $path
 }
 
-# ============================================================
-# PANEL LATERAL IZQUIERDO (Menú de Navegación)
-# ============================================================
 $sidePanel = New-Object Windows.Forms.Panel
 $sidePanel.Dock      = "Left"
 $sidePanel.Width     = 220
@@ -108,7 +82,6 @@ $sidePanel.BackColor = $cBgSide
 $sidePanel.Padding   = New-Object Windows.Forms.Padding(16, 24, 16, 24)
 $mainContainer.Controls.Add($sidePanel)
 
-# -- Logo Superior --
 $logoArea = New-Object Windows.Forms.Panel
 $logoArea.Dock    = "Top"
 $logoArea.Height  = 60
@@ -148,7 +121,6 @@ $lblTitleSub.Font      = $fSubTitle
 $lblTitleSub.ForeColor = $cSubText
 $logoArea.Controls.Add($lblTitleSub)
 
-# -- Gestión Dinámica de Botones del Menú --
 $menuButtons = @()
 function New-MenuBtn($txt, $icon, $selected = $false) {
     $btn = New-Object Windows.Forms.Panel
@@ -202,7 +174,6 @@ $spacer.Height = 20
 $sidePanel.Controls.Add($spacer)
 $spacer.BringToFront()
 
-# -- Versión en Footer Lateral --
 $versionArea = New-Object Windows.Forms.Panel
 $versionArea.Dock    = "Bottom"
 $versionArea.Height  = 40
@@ -233,9 +204,6 @@ $versionArea.Add_Paint({
     $g.DrawString("Versión 1.0.0", $fV, $bSub, 32, 24)
 })
 
-# ============================================================
-# PANEL DE CONTENIDO PRINCIPAL (Área de Trabajo)
-# ============================================================
 $contentPanel = New-Object Windows.Forms.Panel
 $contentPanel.Dock      = "Fill"
 $contentPanel.BackColor = $cBgMain
@@ -243,7 +211,6 @@ $contentPanel.Padding   = New-Object Windows.Forms.Padding(24, 0, 0, 0)
 $mainContainer.Controls.Add($contentPanel)
 $contentPanel.BringToFront()
 
-# -- Cabecera de la Sección --
 $headerArea = New-Object Windows.Forms.Panel
 $headerArea.Dock      = "Top"
 $headerArea.Height    = 100
@@ -267,7 +234,6 @@ $headerArea.Add_Paint({
     $g.DrawString("Herramientas para reparar y solucionar problemas comunes del sistema.", $fD, $bD, 60, 50)
 })
 
-# -- Metadata y Estado Superior (Uptime, User, Windows) --
 $statusArea = New-Object Windows.Forms.Panel
 $statusArea.Dock      = "Top"
 $statusArea.Height    = 70
@@ -318,7 +284,6 @@ New-InfoBlock "Tiempo activo" $uptimeStr "🕒" 460
 New-InfoBlock $env:COMPUTERNAME $env:USERNAME "👤" 230
 New-InfoBlock "Windows 11 Pro" "23H2 (22631.3527)" "🪟" 0
 
-# -- Barra de Filtros Internos --
 $filterBar = New-Object Windows.Forms.Panel
 $filterBar.Dock      = "Top"
 $filterBar.Height    = 40
@@ -368,9 +333,6 @@ New-FilterBtn "Red"            "🌐"
 New-FilterBtn "Sistema"        "💻"
 New-FilterBtn "Todo"           "📋" $true
 
-# ============================================================
-# GRILLA DE TARJETAS DE HERRAMIENTAS (100% Inmune a ParserErrors)
-# ============================================================
 $scrollPanel = New-Object Windows.Forms.Panel
 $scrollPanel.Dock       = "Fill"
 $scrollPanel.AutoScroll = $true
@@ -422,7 +384,6 @@ function New-ToolCard($txt, $desc, $icon, $cmdBlock) {
         $g.DrawString($desc, $fCardDesc, $bSubText, $rectDesc)
     })
     
-    # Botón "Ejecutar"
     $btnExe = New-Object Windows.Forms.Panel
     $btnExe.Size     = New-Object Drawing.Size(120, 30)
     $btnExe.Location = New-Object Drawing.Point(75, 110)
@@ -465,9 +426,6 @@ function New-ToolCard($txt, $desc, $icon, $cmdBlock) {
     }
 }
 
-# ============================================================
-# INYECCIÓN DE ACCIONES DE REPARACIÓN REALES
-# ============================================================
 New-ToolCard "SFC / Scannow" "Verifica y repara archivos de sistema protegidos de Windows." "🛡️" {
     Write-Log "Ejecutando SFC Scannow"
     Start-Process powershell -ArgumentList "-NoProfile -Command `"sfc /scannow`"" -Wait
@@ -513,9 +471,6 @@ New-ToolCard "Reparar Store" "Repara problemas relacionados con Microsoft Store.
     Start-Process wsreset.exe -Wait
 }
 
-# ============================================================
-# BARRA DE ESTADO INFERIOR (Footer / Reloj Continuo)
-# ============================================================
 $footerBar = New-Object Windows.Forms.Panel
 $footerBar.Dock      = "Bottom"
 $footerBar.Height    = 30
@@ -551,9 +506,6 @@ $timer.Interval = 1000
 $timer.Add_Tick({ $footerBar.Invalidate() })
 $timer.Start()
 
-# ============================================================
-# DISPARADOR DEL FORMULARIO
-# ============================================================
 $form.Add_FormClosing({ $timer.Stop() })
 $form.ShowDialog() | Out-Null
 
