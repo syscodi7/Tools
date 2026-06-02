@@ -4,11 +4,11 @@ Add-Type -AssemblyName System.Drawing
 [Windows.Forms.Application]::EnableVisualStyles()
 
 # ============================================================
-# ADMIN CHECK
+# CONTROL DE ADMINISTRADOR
 # ============================================================
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
-    $r = [Windows.Forms.MessageBox]::Show("Requiere Administrador. ¿Reiniciar como Admin?", "SysCodi", "YesNo", "Warning")
+    $r = [Windows.Forms.MessageBox]::Show("Esta herramienta requiere privilegios de Administrador. ¿Deseas reiniciar?", "SysCodi - Privilegios", "YesNo", "Warning")
     if ($r -eq "Yes") { 
         Start-Process powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs 
     }
@@ -16,7 +16,7 @@ if (-not $isAdmin) {
 }
 
 # ============================================================
-# LOGS
+# LOGS DEL SISTEMA
 # ============================================================
 $logDir = "C:\SysCodi\logs"
 if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
@@ -26,7 +26,7 @@ function Write-Log($m) {
 }
 
 # ============================================================
-# COLORES Y FUENTES (Diseño Oscuro Premium)
+# PALETA DE COLORES Y FUENTES (Diseño Oscuro Premium)
 # ============================================================
 $cBg       = [Drawing.Color]::FromArgb(6, 12, 28)
 $cPanel    = [Drawing.Color]::FromArgb(10, 16, 32)
@@ -50,7 +50,7 @@ $fStatus   = New-Object Drawing.Font("Segoe UI", 8.5)
 $fClock    = New-Object Drawing.Font("Consolas", 9)
 
 # ============================================================
-# DISEÑO BASE DE LA VENTANA
+# FORMULARIO BASE PRINCIPAL
 # ============================================================
 $form = New-Object Windows.Forms.Form
 $form.Text            = "SysCodi WinTool Premium"
@@ -60,12 +60,12 @@ $form.BackColor       = $cBg
 $form.ForeColor       = $cText
 $form.FormBorderStyle = "Sizable"
 
-# Contenedor principal anti-parpadeo
+# Contenedor principal para mitigar el parpadeo
 $mainContainer = New-Object Windows.Forms.Panel
 $mainContainer.Dock = "Fill"
 $form.Controls.Add($mainContainer)
 
-# Región Redondeada Segura para evitar op_Subtraction
+# Helper matemático seguro para evitar op_Subtraction en arreglos genéricos
 function Get-RoundedPath($rect, $radius) {
     $path = New-Object Drawing.Drawing2D.GraphicsPath
     $diameter = $radius * 2
@@ -82,7 +82,7 @@ function Get-RoundedPath($rect, $radius) {
 }
 
 # ============================================================
-# TOPBAR (Logo + Sistema de Pestañas)
+# TOPBAR (Logo + Navegación por Pestañas)
 # ============================================================
 $topBar = New-Object Windows.Forms.Panel
 $topBar.Dock      = "Top"
@@ -90,7 +90,7 @@ $topBar.Height    = 65
 $topBar.BackColor = $cPanel
 $mainContainer.Controls.Add($topBar)
 
-# Dibujo de isotipo S seguro
+# Isotipo "S"
 $logoPanel = New-Object Windows.Forms.Panel
 $logoPanel.Size     = New-Object Drawing.Size(45, 45)
 $logoPanel.Location = New-Object Drawing.Point(15, 10)
@@ -100,7 +100,6 @@ $logoPanel.Add_Paint({
     $g = $e.Graphics
     $g.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::AntiAlias
     
-    # Solución op_Subtraction: Leer propiedades directamente del Graphics o del objeto casteado
     $w = $e.ClipRectangle.Width
     $h = $e.ClipRectangle.Height
     if ($w -le 0) { $w = 45 }; if ($h -le 0) { $h = 45 }
@@ -132,13 +131,13 @@ $lblSub.Location = New-Object Drawing.Point(68, 34)
 $lblSub.Size     = New-Object Drawing.Size(80, 15)
 $topBar.Controls.Add($lblSub)
 
-# Contenedor Dinámico de Contenido Principal
+# Contenedor dinámico central
 $contentWrapper = New-Object Windows.Forms.Panel
 $contentWrapper.Dock = "Fill"
 $mainContainer.Controls.Add($contentWrapper)
 
 # ============================================================
-# CONSOLA LATERAL DERECHA
+# CONSOLA LATERAL DERECHA (Output en tiempo real)
 # ============================================================
 $rightPanel = New-Object Windows.Forms.Panel
 $rightPanel.Dock      = "Right"
@@ -164,21 +163,30 @@ $txtConsole.BorderStyle     = "None"
 $txtConsole.ReadOnly        = $true
 $rightPanel.Controls.Add($txtConsole)
 
-# Solución al error de análisis sintáctico de la Consola (ParserError)
+# Función Write-Out corregida para mitigar fallos de Handles prematuros
 function Write-Out($msg, $color=$cText) {
     $timeString = Get-Date -Format "HH:mm:ss"
-    $txtConsole.Invoke([Action[string, string, Drawing.Color]]{
-        param($m, $t, $c)
+    
+    if (-not $txtConsole.IsHandleCreated) {
         $txtConsole.SelectionStart = $txtConsole.TextLength
-        $txtConsole.SelectionColor = $c
-        $txtConsole.AppendText("[" + $t + "] " + $m + "`n")
+        $txtConsole.SelectionColor = $color
+        $txtConsole.AppendText("[" + $timeString + "] " + $msg + "`n")
         $txtConsole.ScrollToCaret()
-        Write-Log $m
-    }, $msg, $timeString, $color) | Out-Null
+        Write-Log $msg
+    } else {
+        $txtConsole.Invoke([Action[string, string, Drawing.Color]]{
+            param($m, $t, $c)
+            $txtConsole.SelectionStart = $txtConsole.TextLength
+            $txtConsole.SelectionColor = $c
+            $txtConsole.AppendText("[" + $t + "] " + $m + "`n")
+            $txtConsole.ScrollToCaret()
+            Write-Log $m
+        }, $msg, $timeString, $color) | Out-Null
+    }
 }
 
 # ============================================================
-# LOGICA DE PESTAÑAS (Tabs)
+# LOGICA DEL INTERFACES DE PESTAÑAS (Tabs)
 # ============================================================
 $tabPanels = @{}
 $tabButtons = @()
@@ -243,7 +251,7 @@ New-TabHeader "apps"      "Aplicaciones"
 New-TabHeader "tareas"    "Tareas"
 
 # ============================================================
-# CONTENIDO: PESTAÑA REPARACIÓN
+# CONTENIDO: PESTAÑA REPARACIÓN (Modo Tarjeta Avanzado)
 # ============================================================
 $pReparar = $tabPanels["reparar"]
 
@@ -323,7 +331,7 @@ function New-ToolCard($txt, $desc, $cmdBlock) {
 
 New-ToolCard "SFC / Scannow" "Sanea y repara archivos críticos de la instalación del sistema." {
     Write-Out "Iniciando SFC /Scannow..." $cAccent
-    Start-Process powershell -ArgumentList "-NoProfile -Command `"sysrestore; sfc /scannow`"" -Wait
+    Start-Process powershell -ArgumentList "-NoProfile -Command `"sfc /scannow`"" -Wait
     Write-Out "SFC Finalizado de forma segura." $cGreen
 }
 New-ToolCard "DISM Health" "Repara la imagen base corrupta usando repositorios locales o en la nube." {
@@ -344,7 +352,7 @@ New-ToolCard "Restablecer Red IP" "Limpia las interfaces de red y la asignación
 }
 
 # ============================================================
-# CONTENIDO: PESTAÑA APLICACIONES
+# CONTENIDO: PESTAÑA APLICACIONES (Gestor WinGet)
 # ============================================================
 $pApps = $tabPanels["apps"]
 
@@ -400,6 +408,7 @@ foreach ($app in $softwareList) {
     $script:checkboxes += $cb
 }
 
+# Buscador reactivo por texto
 $txtSearch.Add_TextChanged({
     $q = $txtSearch.Text.Trim().ToLower()
     foreach ($cb in $checkboxes) {
@@ -411,6 +420,7 @@ $txtSearch.Add_TextChanged({
     }
 })
 
+# Orquestador del despliegue en segundo plano
 $btnInstall.Add_Click({
     $sel = $checkboxes | Where-Object { $_.Checked }
     if ($sel.Count -eq 0) { Write-Out "No seleccionaste ningún software para instalar." $cYellow; return }
@@ -430,7 +440,17 @@ $btnInstall.Add_Click({
 })
 
 # ============================================================
-# DASHBOARD DEFAULT VIEW
+# CONTENIDO: PESTAÑA TAREAS (Espacio de Trabajo Vacío)
+# ============================================================
+$pTareas = $tabPanels["tareas"]
+$lblTareas = New-Object Windows.Forms.Label
+$lblTareas.Text = "Espacio asignado para la automatización de Tareas Programadas."
+$lblTareas.Font = $fCardHead
+$lblTareas.Size = New-Object Drawing.Size(450, 40)
+$pTareas.Controls.Add($lblTareas)
+
+# ============================================================
+# PANEL DE BIENVENIDA / DASHBOARD
 # ============================================================
 $pDash = $tabPanels["dashboard"]
 $lblDash = New-Object Windows.Forms.Label
@@ -440,7 +460,7 @@ $lblDash.Size = New-Object Drawing.Size(500, 200)
 $pDash.Controls.Add($lblDash)
 
 # ============================================================
-# FOOTER / BARRA DE ESTADO
+# FOOTER / BARRA DE ESTADO INDEPENDIENTE
 # ============================================================
 $footerBar = New-Object Windows.Forms.Panel
 $footerBar.Dock      = "Bottom"
@@ -475,6 +495,7 @@ $timer.Start()
 
 $form.Add_FormClosing({ $timer.Stop() })
 
+# Arranque seguro de componentes
 Switch-Tab "dashboard"
 Write-Out "Consola inicializada correctamente. Modo administrador activo." $cGreen
 
