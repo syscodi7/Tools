@@ -8,7 +8,7 @@ Add-Type -AssemblyName System.Drawing
 # ============================================================
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
-    $r = [Windows.Forms.MessageBox]::Show("Requiere Administrador. Reiniciar como Admin?", "SysCodi", "YesNo", "Warning")
+    $r = [Windows.Forms.MessageBox]::Show("Requiere Administrador. ¿Reiniciar como Admin?", "SysCodi", "YesNo", "Warning")
     if ($r -eq "Yes") { 
         Start-Process powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs 
     }
@@ -82,7 +82,7 @@ function Get-RoundedPath($rect, $radius) {
 }
 
 # ============================================================
-# TOPBAR (Logo + Sistema de Pestañas de tu Script)
+# TOPBAR (Logo + Sistema de Pestañas)
 # ============================================================
 $topBar = New-Object Windows.Forms.Panel
 $topBar.Dock      = "Top"
@@ -99,8 +99,13 @@ $logoPanel.Add_Paint({
     param($s,$e)
     $g = $e.Graphics
     $g.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::AntiAlias
-    $ctrl = [System.Windows.Forms.Control]$s
-    $rect = New-Object Drawing.Rectangle(0, 0, ($ctrl.Width - 1), ($ctrl.Height - 1))
+    
+    # Solución op_Subtraction: Leer propiedades directamente del Graphics o del objeto casteado
+    $w = $e.ClipRectangle.Width
+    $h = $e.ClipRectangle.Height
+    if ($w -le 0) { $w = 45 }; if ($h -le 0) { $h = 45 }
+
+    $rect = New-Object Drawing.Rectangle(0, 0, ($w - 1), ($h - 1))
     $path = Get-RoundedPath $rect 8
     $brush = New-Object Drawing.SolidBrush($cAccent)
     $g.FillPath($brush, $path)
@@ -108,7 +113,7 @@ $logoPanel.Add_Paint({
     $fS = New-Object Drawing.Font("Segoe UI", 18, [Drawing.FontStyle]::Bold)
     $bS = New-Object Drawing.SolidBrush($cText)
     $sf = New-Object Drawing.StringFormat -Property @{Alignment="Center"; LineAlignment="Center"}
-    $g.DrawString("S", $fS, $bS, [Drawing.RectangleF]::new(0, 0, $ctrl.Width, $ctrl.Height), $sf)
+    $g.DrawString("S", $fS, $bS, [Drawing.RectangleF]::new(0, 0, $w, $h), $sf)
     $path.Dispose(); $brush.Dispose(); $fS.Dispose(); $bS.Dispose(); $sf.Dispose()
 })
 
@@ -133,7 +138,7 @@ $contentWrapper.Dock = "Fill"
 $mainContainer.Controls.Add($contentWrapper)
 
 # ============================================================
-# CONSOLA LATERAL DERECHA (Propia de tu lógica original)
+# CONSOLA LATERAL DERECHA
 # ============================================================
 $rightPanel = New-Object Windows.Forms.Panel
 $rightPanel.Dock      = "Right"
@@ -159,15 +164,17 @@ $txtConsole.BorderStyle     = "None"
 $txtConsole.ReadOnly        = $true
 $rightPanel.Controls.Add($txtConsole)
 
+# Solución al error de análisis sintáctico de la Consola (ParserError)
 function Write-Out($msg, $color=$cText) {
-    $txtConsole.Invoke([Action[string, Drawing.Color]]{
-        param($m, $c)
+    $timeString = Get-Date -Format "HH:mm:ss"
+    $txtConsole.Invoke([Action[string, string, Drawing.Color]]{
+        param($m, $t, $c)
         $txtConsole.SelectionStart = $txtConsole.TextLength
         $txtConsole.SelectionColor = $c
-        $txtConsole.AppendText("[$([Get-Date -Format 'HH:mm:ss'])] $m`n")
+        $txtConsole.AppendText("[" + $t + "] " + $m + "`n")
         $txtConsole.ScrollToCaret()
         Write-Log $m
-    }, $msg, $color) | Out-Null
+    }, $msg, $timeString, $color) | Out-Null
 }
 
 # ============================================================
@@ -192,25 +199,28 @@ function New-TabHeader($name, $label) {
     $btn.Size     = New-Object Drawing.Size(120, 65)
     $btn.Location = New-Object Drawing.Point($script:tabX, 0)
     $btn.Cursor   = "Hand"
-    $btn.Tag      = $false # State Selected
+    $btn.Tag      = $false
     
     $btn.Add_Paint({
         param($s,$e)
         $g = $e.Graphics
         $g.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::AntiAlias
-        $ctrl = [System.Windows.Forms.Control]$s
         
-        if ($ctrl.Tag -eq $true) {
+        $w = $e.ClipRectangle.Width
+        $h = $e.ClipRectangle.Height
+        if ($w -le 0) { $w = 120 }; if ($h -le 0) { $h = 65 }
+        
+        if ($s.Tag -eq $true) {
             $brushText = New-Object Drawing.SolidBrush($cAccent)
             $penLine = New-Object Drawing.Pen($cAccent, 3)
-            $g.DrawLine($penLine, 0, ($ctrl.Height - 2), $ctrl.Width, ($ctrl.Height - 2))
+            $g.DrawLine($penLine, 0, ($h - 2), $w, ($h - 2))
             $penLine.Dispose(); $brushText.Dispose()
         }
         
-        $color = if ($ctrl.Tag -eq $true) { $cText } else { $cSubText }
+        $color = if ($s.Tag -eq $true) { $cText } else { $cSubText }
         $brush = New-Object Drawing.SolidBrush($color)
         $sf = New-Object Drawing.StringFormat -Property @{Alignment="Center"; LineAlignment="Center"}
-        $g.DrawString($label, $fTab, $brush, [Drawing.RectangleF]::new(0, 0, $ctrl.Width, $ctrl.Height), $sf)
+        $g.DrawString($label, $fTab, $brush, [Drawing.RectangleF]::new(0, 0, $w, $h), $sf)
         $brush.Dispose(); $sf.Dispose()
     })
     
@@ -219,7 +229,6 @@ function New-TabHeader($name, $label) {
     $script:tabButtons += $btn
     $script:tabX += 125
     
-    # Crear el panel contenedor de contenido de esta pestaña
     $p = New-Object Windows.Forms.Panel
     $p.Dock = "Fill"
     $p.Visible = $false
@@ -228,14 +237,13 @@ function New-TabHeader($name, $label) {
     $tabPanels[$name] = $p
 }
 
-# Crear las Pestañas Base de tu aplicación
 New-TabHeader "dashboard" "Dashboard"
 New-TabHeader "reparar"   "Reparación"
 New-TabHeader "apps"      "Aplicaciones"
 New-TabHeader "tareas"    "Tareas"
 
 # ============================================================
-# CONTENIDO: PESTAÑA REPARACIÓN (Tarjetas Dinámicas)
+# CONTENIDO: PESTAÑA REPARACIÓN
 # ============================================================
 $pReparar = $tabPanels["reparar"]
 
@@ -255,9 +263,11 @@ function New-ToolCard($txt, $desc, $cmdBlock) {
         param($s,$e)
         $g = $e.Graphics
         $g.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::AntiAlias
-        $ctrl = [System.Windows.Forms.Control]$s
         
-        $rect = New-Object Drawing.Rectangle(0, 0, ($ctrl.Width - 1), ($ctrl.Height - 1))
+        $w = $e.ClipRectangle.Width; $h = $e.ClipRectangle.Height
+        if ($w -le 0) { $w = 260 }; if ($h -le 0) { $h = 150 }
+        
+        $rect = New-Object Drawing.Rectangle(0, 0, ($w - 1), ($h - 1))
         $path = Get-RoundedPath $rect 10
         $brushBg = New-Object Drawing.SolidBrush($cCard)
         $g.FillPath($brushBg, $path)
@@ -267,7 +277,7 @@ function New-ToolCard($txt, $desc, $cmdBlock) {
         $bText = New-Object Drawing.SolidBrush($cText)
         $g.DrawString($txt, $fCardHead, $bText, 14, 14)
 
-        $rectDesc = New-Object Drawing.RectangleF(14, 38, ($ctrl.Width - 28), 55)
+        $rectDesc = New-Object Drawing.RectangleF(14, 38, ($w - 28), 55)
         $bSubText = New-Object Drawing.SolidBrush($cSubText)
         $g.DrawString($desc, $fCardDesc, $bSubText, $rectDesc)
         
@@ -284,9 +294,11 @@ function New-ToolCard($txt, $desc, $cmdBlock) {
         param($s,$e)
         $g = $e.Graphics
         $g.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::AntiAlias
-        $ctrl = [System.Windows.Forms.Control]$s
         
-        $rectBtn = New-Object Drawing.Rectangle(0, 0, ($ctrl.Width - 1), ($ctrl.Height - 1))
+        $w = $e.ClipRectangle.Width; $h = $e.ClipRectangle.Height
+        if ($w -le 0) { $w = 100 }; if ($h -le 0) { $h = 28 }
+        
+        $rectBtn = New-Object Drawing.Rectangle(0, 0, ($w - 1), ($h - 1))
         $pathBtn = Get-RoundedPath $rectBtn 6
         $brushBtnBg = New-Object Drawing.SolidBrush($cPanel)
         $g.FillPath($brushBtnBg, $pathBtn)
@@ -296,7 +308,7 @@ function New-ToolCard($txt, $desc, $cmdBlock) {
         $fB = New-Object Drawing.Font("Segoe UI", 8.5, [Drawing.FontStyle]::Bold)
         $bBtnText = New-Object Drawing.SolidBrush($cText)
         $sfBtn = New-Object Drawing.StringFormat -Property @{Alignment="Center"; LineAlignment="Center"}
-        $g.DrawString("Ejecutar", $fB, $bBtnText, [Drawing.RectangleF]::new(0, 0, $ctrl.Width, $ctrl.Height), $sfBtn)
+        $g.DrawString("Ejecutar", $fB, $bBtnText, [Drawing.RectangleF]::new(0, 0, $w, $h), $sfBtn)
         
         $pathBtn.Dispose(); $brushBtnBg.Dispose(); $penBtn.Dispose(); $fB.Dispose(); $bBtnText.Dispose(); $sfBtn.Dispose()
     })
@@ -309,10 +321,9 @@ function New-ToolCard($txt, $desc, $cmdBlock) {
     if ($script:cX -ge 3) { $script:cX = 0; $script:cY++ }
 }
 
-# Inyección segura de módulos de reparación
 New-ToolCard "SFC / Scannow" "Sanea y repara archivos críticos de la instalación del sistema." {
     Write-Out "Iniciando SFC /Scannow..." $cAccent
-    Start-Process powershell -ArgumentList "-NoProfile -Command `"sfc /scannow`"" -Wait
+    Start-Process powershell -ArgumentList "-NoProfile -Command `"sysrestore; sfc /scannow`"" -Wait
     Write-Out "SFC Finalizado de forma segura." $cGreen
 }
 New-ToolCard "DISM Health" "Repara la imagen base corrupta usando repositorios locales o en la nube." {
@@ -333,7 +344,7 @@ New-ToolCard "Restablecer Red IP" "Limpia las interfaces de red y la asignación
 }
 
 # ============================================================
-# CONTENIDO: PESTAÑA APLICACIONES (Tu Gestor Winget Original)
+# CONTENIDO: PESTAÑA APLICACIONES
 # ============================================================
 $pApps = $tabPanels["apps"]
 
@@ -365,7 +376,6 @@ $appsFlow.Size     = New-Object Drawing.Size(500, 560)
 $appsFlow.AutoScroll = $true
 $pApps.Controls.Add($appsFlow)
 
-# Catálogo original de tu software de confianza
 $softwareList = @(
     @{name="Google Chrome";     cmd="winget install Google.Chrome --silent --accept-package-agreements --accept-source-agreements"; foss=$false},
     @{name="Mozilla Firefox";   cmd="winget install Mozilla.Firefox --silent"; foss=$true},
@@ -390,7 +400,6 @@ foreach ($app in $softwareList) {
     $script:checkboxes += $cb
 }
 
-# Lógica del buscador reactivo
 $txtSearch.Add_TextChanged({
     $q = $txtSearch.Text.Trim().ToLower()
     foreach ($cb in $checkboxes) {
@@ -402,7 +411,6 @@ $txtSearch.Add_TextChanged({
     }
 })
 
-# Ejecución real de descargas Winget
 $btnInstall.Add_Click({
     $sel = $checkboxes | Where-Object { $_.Checked }
     if ($sel.Count -eq 0) { Write-Out "No seleccionaste ningún software para instalar." $cYellow; return }
@@ -422,7 +430,7 @@ $btnInstall.Add_Click({
 })
 
 # ============================================================
-# PANEL DE BIENVENIDA / DASHBOARD POR DEFECTO
+# DASHBOARD DEFAULT VIEW
 # ============================================================
 $pDash = $tabPanels["dashboard"]
 $lblDash = New-Object Windows.Forms.Label
@@ -432,7 +440,7 @@ $lblDash.Size = New-Object Drawing.Size(500, 200)
 $pDash.Controls.Add($lblDash)
 
 # ============================================================
-# FOOTER / BARRA DE ESTADO DE CONTROL INDEPENDIENTE
+# FOOTER / BARRA DE ESTADO
 # ============================================================
 $footerBar = New-Object Windows.Forms.Panel
 $footerBar.Dock      = "Bottom"
@@ -458,7 +466,6 @@ $lblClock.TextAlign = "MiddleRight"
 $lblClock.Text = (Get-Date -Format "dd/MM/yyyy  HH:mm:ss")
 $footerBar.Controls.Add($lblClock)
 
-# Timer asíncrono para refrescar la hora de forma segura
 $timer = New-Object Windows.Forms.Timer
 $timer.Interval = 1000
 $timer.Add_Tick({ 
@@ -468,7 +475,6 @@ $timer.Start()
 
 $form.Add_FormClosing({ $timer.Stop() })
 
-# Inicialización por defecto en el Dashboard
 Switch-Tab "dashboard"
 Write-Out "Consola inicializada correctamente. Modo administrador activo." $cGreen
 
