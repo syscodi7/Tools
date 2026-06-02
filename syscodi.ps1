@@ -471,6 +471,17 @@ $footerBar.BackColor = $cBgMain
 $footerBar.Padding   = New-Object Windows.Forms.Padding(220, 0, 0, 0)
 $mainContainer.Controls.Add($footerBar)
 
+# Separación del Reloj en un control independiente para evitar invalidaciones infinitas en cascada
+$lblClock = New-Object Windows.Forms.Label
+$lblClock.AutoSize = $false
+$lblClock.Size = New-Object Drawing.Size(180, 20)
+$lblClock.Location = New-Object Drawing.Point(980, 5)
+$lblClock.Font = $fClock
+$lblClock.ForeColor = $cSubText
+$lblClock.TextAlign = "MiddleRight"
+$lblClock.Text = (Get-Date -Format "dd/MM/yyyy  HH:mm:ss")
+$footerBar.Controls.Add($lblClock)
+
 $footerBar.Add_Paint({
     param($s,$e)
     $g = $e.Graphics
@@ -480,23 +491,18 @@ $footerBar.Add_Paint({
     $g.DrawLine($pen, 240, 0, $s.Width, 0)
 
     $bG = New-Object Drawing.SolidBrush($cGreen)
-    $g.DrawString("✔", $fStatus, $bG, 240, 8)
+    $g.DrawString("✔", $fStatus, $bG, 240, 5)
     
     $bT = New-Object Drawing.SolidBrush($cSubText)
-    $g.DrawString("Sistema funcionando correctamente", $fStatus, $bT, 260, 8)
-
-    $time = (Get-Date -Format "dd/MM/yyyy  HH:mm:ss")
-    $bC = New-Object Drawing.SolidBrush($cSubText)
-    $sf = New-Object Drawing.StringFormat
-    $sf.Alignment = "Far"
-    $wF = $s.Width - 10
-    $rectClock = New-Object Drawing.RectangleF(0, 8, $wF, 20)
-    $g.DrawString($time, $fClock, $bC, $rectClock, $sf)
+    $g.DrawString("Sistema funcionando correctamente", $fStatus, $bT, 260, 5)
 })
 
 $timer = New-Object Windows.Forms.Timer
 $timer.Interval = 1000
-$timer.Add_Tick({ $footerBar.Invalidate() })
+$timer.Add_Tick({ 
+    # Actualiza exclusivamente el texto del Label en lugar de redibujar todo el panel
+    $lblClock.Text = (Get-Date -Format "dd/MM/yyyy  HH:mm:ss") 
+})
 $timer.Start()
 
 $form.Add_FormClosing({ $timer.Stop() })
