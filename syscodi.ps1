@@ -1,22 +1,23 @@
 #Requires -Version 5.1
-
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 [Windows.Forms.Application]::EnableVisualStyles()
 
 # ============================================================
-# CONTROL DE ADMINISTRADOR
+# ADMIN CHECK
 # ============================================================
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
-    $r = [Windows.Forms.MessageBox]::Show("Esta herramienta requiere privilegios de Administrador. ¿Deseas reiniciar?", "SysCodi - Privilegios", "YesNo", "Warning")
+    $r = [Windows.Forms.MessageBox]::Show("Requiere Administrador. Reiniciar como Admin?", "SysCodi", "YesNo", "Warning")
     if ($r -eq "Yes") { 
         Start-Process powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs 
     }
     exit
 }
 
-# Logs básicos
+# ============================================================
+# LOGS
+# ============================================================
 $logDir = "C:\SysCodi\logs"
 if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
 $logFile = "$logDir\$(Get-Date -Format 'yyyy-MM-dd').log"
@@ -25,43 +26,46 @@ function Write-Log($m) {
 }
 
 # ============================================================
-# PALETA DE COLORES (Diseño Oscuro Premium)
+# COLORES Y FUENTES (Diseño Oscuro Premium)
 # ============================================================
-$cBgMain    = [Drawing.Color]::FromArgb(6, 12, 28) 
-$cBgSide    = [Drawing.Color]::FromArgb(10, 16, 32) 
-$cBgCard    = [Drawing.Color]::FromArgb(13, 21, 41) 
-$cBgBtn     = [Drawing.Color]::FromArgb(10, 16, 32) 
-$cAccent    = [Drawing.Color]::FromArgb(52, 152, 219) 
-$cBorder    = [Drawing.Color]::FromArgb(26, 40, 64) 
-$cText      = [Drawing.Color]::FromArgb(226, 232, 240) 
-$cSubText   = [Drawing.Color]::FromArgb(144, 168, 192) 
-$cGreen     = [Drawing.Color]::FromArgb(46, 204, 113)
+$cBg       = [Drawing.Color]::FromArgb(6, 12, 28)
+$cPanel    = [Drawing.Color]::FromArgb(10, 16, 32)
+$cCard     = [Drawing.Color]::FromArgb(13, 21, 41)
+$cBorder   = [Drawing.Color]::FromArgb(26, 40, 64)
+$cAccent   = [Drawing.Color]::FromArgb(52, 152, 219)
+$cAccent2  = [Drawing.Color]::FromArgb(155, 89, 182)
+$cText     = [Drawing.Color]::FromArgb(226, 232, 240)
+$cSubText  = [Drawing.Color]::FromArgb(144, 168, 192)
+$cGreen    = [Drawing.Color]::FromArgb(46, 204, 113)
+$cRed      = [Drawing.Color]::FromArgb(231, 76, 60)
+$cYellow   = [Drawing.Color]::FromArgb(241, 196, 15)
 
-# Fuentes seguras del sistema
 $fTitle    = New-Object Drawing.Font("Segoe UI", 12, [Drawing.FontStyle]::Bold)
 $fSubTitle = New-Object Drawing.Font("Segoe UI", 8)
-$fMenu     = New-Object Drawing.Font("Segoe UI", 9)
+$fTab      = New-Object Drawing.Font("Segoe UI", 9.5, [Drawing.FontStyle]::Bold)
 $fCardHead = New-Object Drawing.Font("Segoe UI", 10, [Drawing.FontStyle]::Bold)
 $fCardDesc = New-Object Drawing.Font("Segoe UI", 8)
+$fConsole  = New-Object Drawing.Font("Consolas", 9)
 $fStatus   = New-Object Drawing.Font("Segoe UI", 8.5)
 $fClock    = New-Object Drawing.Font("Consolas", 9)
 
-# Formulario Principal
+# ============================================================
+# DISEÑO BASE DE LA VENTANA
+# ============================================================
 $form = New-Object Windows.Forms.Form
-$form.Text            = "SysCodi WinTool"
+$form.Text            = "SysCodi WinTool Premium"
 $form.Size            = New-Object Drawing.Size(1200, 780)
 $form.StartPosition   = "CenterScreen"
-$form.BackColor       = $cBgMain
+$form.BackColor       = $cBg
 $form.ForeColor       = $cText
 $form.FormBorderStyle = "Sizable"
 
-# Contenedor para evitar el parpadeo
+# Contenedor principal anti-parpadeo
 $mainContainer = New-Object Windows.Forms.Panel
 $mainContainer.Dock = "Fill"
-$mainContainer.Padding = New-Object Windows.Forms.Padding(0)
 $form.Controls.Add($mainContainer)
 
-# Helper para esquinas redondeadas sin fugas de memoria GDI
+# Región Redondeada Segura para evitar op_Subtraction
 function Get-RoundedPath($rect, $radius) {
     $path = New-Object Drawing.Drawing2D.GraphicsPath
     $diameter = $radius * 2
@@ -78,208 +82,192 @@ function Get-RoundedPath($rect, $radius) {
 }
 
 # ============================================================
-# SIDEBAR IZQUIERDO
+# TOPBAR (Logo + Sistema de Pestañas de tu Script)
 # ============================================================
-$sidePanel = New-Object Windows.Forms.Panel
-$sidePanel.Dock      = "Left"
-$sidePanel.Width     = 240
-$sidePanel.BackColor = $cBgSide
-$sidePanel.Padding   = New-Object Windows.Forms.Padding(16, 24, 16, 24)
-$mainContainer.Controls.Add($sidePanel)
+$topBar = New-Object Windows.Forms.Panel
+$topBar.Dock      = "Top"
+$topBar.Height    = 65
+$topBar.BackColor = $cPanel
+$mainContainer.Controls.Add($topBar)
 
-# Área del Logo S
-$logoArea = New-Object Windows.Forms.Panel
-$logoArea.Dock    = "Top"
-$logoArea.Height  = 60
-$sidePanel.Controls.Add($logoArea)
-
-$logoArea.Add_Paint({
+# Dibujo de isotipo S seguro
+$logoPanel = New-Object Windows.Forms.Panel
+$logoPanel.Size     = New-Object Drawing.Size(45, 45)
+$logoPanel.Location = New-Object Drawing.Point(15, 10)
+$topBar.Controls.Add($logoPanel)
+$logoPanel.Add_Paint({
     param($s,$e)
     $g = $e.Graphics
     $g.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::AntiAlias
-    $rect = New-Object Drawing.Rectangle(0, 4, 38, 38)
+    $ctrl = [System.Windows.Forms.Control]$s
+    $rect = New-Object Drawing.Rectangle(0, 0, ($ctrl.Width - 1), ($ctrl.Height - 1))
     $path = Get-RoundedPath $rect 8
-    $brush = New-Object Drawing.SolidBrush([Drawing.Color]::FromArgb(41, 128, 185))
+    $brush = New-Object Drawing.SolidBrush($cAccent)
     $g.FillPath($brush, $path)
     
     $fS = New-Object Drawing.Font("Segoe UI", 18, [Drawing.FontStyle]::Bold)
     $bS = New-Object Drawing.SolidBrush($cText)
-    $sf = New-Object Drawing.StringFormat
-    $sf.Alignment = "Center"
-    $sf.LineAlignment = "Center"
-    $g.DrawString("S", $fS, $bS, [Drawing.RectangleF]::new(0, 4, 38, 38), $sf)
+    $sf = New-Object Drawing.StringFormat -Property @{Alignment="Center"; LineAlignment="Center"}
+    $g.DrawString("S", $fS, $bS, [Drawing.RectangleF]::new(0, 0, $ctrl.Width, $ctrl.Height), $sf)
     $path.Dispose(); $brush.Dispose(); $fS.Dispose(); $bS.Dispose(); $sf.Dispose()
 })
 
-$lblTitle = New-Object Windows.Forms.Label
-$lblTitle.Text      = "SysCodi WinTool"
-$lblTitle.Location  = New-Object Drawing.Point(48, 6)
-$lblTitle.Size      = New-Object Drawing.Size(170, 22)
-$lblTitle.Font      = $fTitle
-$lblTitle.ForeColor = $cText
-$logoArea.Controls.Add($lblTitle)
+$lblBrand = New-Object Windows.Forms.Label
+$lblBrand.Text     = "SysCodi"
+$lblBrand.Font     = $fTitle
+$lblBrand.Location = New-Object Drawing.Point(68, 12)
+$lblBrand.Size     = New-Object Drawing.Size(80, 22)
+$topBar.Controls.Add($lblBrand)
 
-$lblTitleSub = New-Object Windows.Forms.Label
-$lblTitleSub.Text      = "Herramientas de Windows"
-$lblTitleSub.Location  = New-Object Drawing.Point(48, 28)
-$lblTitleSub.Size      = New-Object Drawing.Size(170, 20)
-$lblTitleSub.Font      = $fSubTitle
-$lblTitleSub.ForeColor = $cSubText
-$logoArea.Controls.Add($lblTitleSub)
+$lblSub = New-Object Windows.Forms.Label
+$lblSub.Text     = "WinTool v1.0.0"
+$lblSub.Font     = $fSubTitle
+$lblSub.ForeColor= $cSubText
+$lblSub.Location = New-Object Drawing.Point(68, 34)
+$lblSub.Size     = New-Object Drawing.Size(80, 15)
+$topBar.Controls.Add($lblSub)
 
-# Botones del Menú Lateral
-function New-MenuBtn($txt, $icon, $selected = $false) {
+# Contenedor Dinámico de Contenido Principal
+$contentWrapper = New-Object Windows.Forms.Panel
+$contentWrapper.Dock = "Fill"
+$mainContainer.Controls.Add($contentWrapper)
+
+# ============================================================
+# CONSOLA LATERAL DERECHA (Propia de tu lógica original)
+# ============================================================
+$rightPanel = New-Object Windows.Forms.Panel
+$rightPanel.Dock      = "Right"
+$rightPanel.Width     = 320
+$rightPanel.BackColor = $cPanel
+$rightPanel.Padding   = New-Object Windows.Forms.Padding(12)
+$mainContainer.Controls.Add($rightPanel)
+
+$lblConsoleTitle = New-Object Windows.Forms.Label
+$lblConsoleTitle.Text     = "CONSOLA DE SALIDA"
+$lblConsoleTitle.Font     = New-Object Drawing.Font("Segoe UI", 8.5, [Drawing.FontStyle]::Bold)
+$lblConsoleTitle.ForeColor= $cSubText
+$lblConsoleTitle.Dock     = "Top"
+$lblConsoleTitle.Height   = 20
+$rightPanel.Controls.Add($lblConsoleTitle)
+
+$txtConsole = New-Object Windows.Forms.RichTextBox
+$txtConsole.Dock            = "Fill"
+$txtConsole.BackColor       = $cBg
+$txtConsole.ForeColor       = $cText
+$txtConsole.Font            = $fConsole
+$txtConsole.BorderStyle     = "None"
+$txtConsole.ReadOnly        = $true
+$rightPanel.Controls.Add($txtConsole)
+
+function Write-Out($msg, $color=$cText) {
+    $txtConsole.Invoke([Action[string, Drawing.Color]]{
+        param($m, $c)
+        $txtConsole.SelectionStart = $txtConsole.TextLength
+        $txtConsole.SelectionColor = $c
+        $txtConsole.AppendText("[$([Get-Date -Format 'HH:mm:ss'])] $m`n")
+        $txtConsole.ScrollToCaret()
+        Write-Log $m
+    }, $msg, $color) | Out-Null
+}
+
+# ============================================================
+# LOGICA DE PESTAÑAS (Tabs)
+# ============================================================
+$tabPanels = @{}
+$tabButtons = @()
+
+function Switch-Tab($name) {
+    foreach ($k in $tabPanels.Keys) { $tabPanels[$k].Visible = $false }
+    $tabPanels[$name].Visible = $true
+    foreach ($b in $tabButtons) {
+        $b.Tag = ($b.Name -eq "btnTab_$name")
+        $b.Invalidate()
+    }
+}
+
+$tabX = 170
+function New-TabHeader($name, $label) {
     $btn = New-Object Windows.Forms.Panel
-    $btn.Dock      = "Top"
-    $btn.Height    = 44
-    $btn.Cursor    = "Hand"
-    $btn.Margin    = New-Object Windows.Forms.Padding(0, 4, 0, 4)
-    $btn.Tag       = $selected
+    $btn.Name     = "btnTab_$name"
+    $btn.Size     = New-Object Drawing.Size(120, 65)
+    $btn.Location = New-Object Drawing.Point($script:tabX, 0)
+    $btn.Cursor   = "Hand"
+    $btn.Tag      = $false # State Selected
     
     $btn.Add_Paint({
         param($s,$e)
         $g = $e.Graphics
         $g.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::AntiAlias
+        $ctrl = [System.Windows.Forms.Control]$s
         
-        if ($s.Tag -eq $true) {
-            $brushBg = New-Object Drawing.SolidBrush([Drawing.Color]::FromArgb(18, 28, 46))
-            $g.FillRectangle($brushBg, (New-Object Drawing.Rectangle(0, 0, $s.Width, $s.Height)))
-            $brushAcc = New-Object Drawing.SolidBrush($cAccent)
-            $g.FillRectangle($brushAcc, (New-Object Drawing.Rectangle(0, 0, 4, $s.Height)))
-            $brushBg.Dispose(); $brushAcc.Dispose()
+        if ($ctrl.Tag -eq $true) {
+            $brushText = New-Object Drawing.SolidBrush($cAccent)
+            $penLine = New-Object Drawing.Pen($cAccent, 3)
+            $g.DrawLine($penLine, 0, ($ctrl.Height - 2), $ctrl.Width, ($ctrl.Height - 2))
+            $penLine.Dispose(); $brushText.Dispose()
         }
-
-        $colorTxt = if($s.Tag -eq $true){$cText}else{$cSubText}
-        $bT = New-Object Drawing.SolidBrush($colorTxt)
-        $g.DrawString($txt, $fMenu, $bT, 20, 14)
-        $bT.Dispose()
+        
+        $color = if ($ctrl.Tag -eq $true) { $cText } else { $cSubText }
+        $brush = New-Object Drawing.SolidBrush($color)
+        $sf = New-Object Drawing.StringFormat -Property @{Alignment="Center"; LineAlignment="Center"}
+        $g.DrawString($label, $fTab, $brush, [Drawing.RectangleF]::new(0, 0, $ctrl.Width, $ctrl.Height), $sf)
+        $brush.Dispose(); $sf.Dispose()
     })
     
-    $sidePanel.Controls.Add($btn)
-    $btn.BringToFront()
+    $btn.Add_Click({ Switch-Tab $name })
+    $topBar.Controls.Add($btn)
+    $script:tabButtons += $btn
+    $script:tabX += 125
+    
+    # Crear el panel contenedor de contenido de esta pestaña
+    $p = New-Object Windows.Forms.Panel
+    $p.Dock = "Fill"
+    $p.Visible = $false
+    $p.Padding = New-Object Windows.Forms.Padding(20)
+    $contentWrapper.Controls.Add($p)
+    $tabPanels[$name] = $p
 }
 
-New-MenuBtn "Ajustes"
-New-MenuBtn "Reportes"
-New-MenuBtn "Aplicaciones"
-New-MenuBtn "Tareas"
-New-MenuBtn "Reparacion" $true
-New-MenuBtn "Dashboard"
+# Crear las Pestañas Base de tu aplicación
+New-TabHeader "dashboard" "Dashboard"
+New-TabHeader "reparar"   "Reparación"
+New-TabHeader "apps"      "Aplicaciones"
+New-TabHeader "tareas"    "Tareas"
 
 # ============================================================
-# CUERPO PRINCIPAL DE CONTENIDO
+# CONTENIDO: PESTAÑA REPARACIÓN (Tarjetas Dinámicas)
 # ============================================================
-$contentPanel = New-Object Windows.Forms.Panel
-$contentPanel.Dock      = "Fill"
-$contentPanel.BackColor = $cBgMain
-$contentPanel.Padding   = New-Object Windows.Forms.Padding(24, 16, 24, 16)
-$mainContainer.Controls.Add($contentPanel)
-$contentPanel.BringToFront()
+$pReparar = $tabPanels["reparar"]
 
-# Encabezado de la sección
-$headerArea = New-Object Windows.Forms.Panel
-$headerArea.Dock      = "Top"
-$headerArea.Height    = 75
-$contentPanel.Controls.Add($headerArea)
-
-$headerArea.Add_Paint({
-    param($s,$e)
-    $g = $e.Graphics
-    $g.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::AntiAlias
-    
-    $fT = New-Object Drawing.Font("Segoe UI", 20, [Drawing.FontStyle]::Bold)
-    $bT = New-Object Drawing.SolidBrush($cText)
-    $g.DrawString("Reparacion de Sistema", $fT, $bT, 0, 4)
-
-    $fD = New-Object Drawing.Font("Segoe UI", 9)
-    $bD = New-Object Drawing.SolidBrush($cSubText)
-    $g.DrawString("Herramientas avanzadas para optimizar, reparar y solucionar inconsistencias en Windows.", $fD, $bD, 0, 40)
-    
-    $fT.Dispose(); $bT.Dispose(); $fD.Dispose(); $bD.Dispose()
-})
-
-# Tarjetas superiores de Estado / Información
-$statusArea = New-Object Windows.Forms.Panel
-$statusArea.Dock      = "Top"
-$statusArea.Height    = 75
-$contentPanel.Controls.Add($statusArea)
-
-function New-InfoBlock($txt, $subTxt, $x) {
-    $block = New-Object Windows.Forms.Panel
-    $block.Location = New-Object Drawing.Point($x, 0)
-    $block.Size     = New-Object Drawing.Size(220, 60)
-    $block.BackColor = $cBgCard
-    
-    $block.Add_Paint({
-        param($s,$e)
-        $g = $e.Graphics
-        $g.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::AntiAlias
-        
-        $rect = New-Object Drawing.Rectangle(0, 0, $s.Width-1, $s.Height-1)
-        $path = Get-RoundedPath $rect 8
-        $brushBg = New-Object Drawing.SolidBrush($cBgCard)
-        $g.FillPath($brushBg, $path)
-        $pen = New-Object Drawing.Pen($cBorder, 1)
-        $g.DrawPath($pen, $path)
-
-        $fT = New-Object Drawing.Font("Segoe UI", 9, [Drawing.FontStyle]::Bold)
-        $bT = New-Object Drawing.SolidBrush($cText)
-        $g.DrawString($txt, $fT, $bT, 16, 12)
-
-        $fS = New-Object Drawing.Font("Segoe UI", 8)
-        $bS = New-Object Drawing.SolidBrush($cSubText)
-        $g.DrawString($subTxt, $fS, $bS, 16, 30)
-        
-        $path.Dispose(); $brushBg.Dispose(); $pen.Dispose(); $fT.Dispose(); $bT.Dispose(); $fS.Dispose(); $bS.Dispose()
-    })
-    $statusArea.Controls.Add($block)
-}
-
-# Obtención de datos reales del sistema
-$os = Get-CimInstance Win32_OperatingSystem
-$uptimeSpan = (Get-Date) - $os.LastBootUpTime
-$uptimeStr = "$($uptimeSpan.Days)d $($uptimeSpan.Hours)h $($uptimeSpan.Minutes)m"
-
-New-InfoBlock "Windows 11 Pro" "Build $($os.BuildNumber)" 0
-New-InfoBlock $env:COMPUTERNAME $env:USERNAME 235
-New-InfoBlock "Tiempo Activo" $uptimeStr 470
-
-# ============================================================
-# PANEL DE SCROLL CON TARJETAS DE HERRAMIENTAS
-# ============================================================
 $scrollPanel = New-Object Windows.Forms.Panel
 $scrollPanel.Dock       = "Fill"
 $scrollPanel.AutoScroll = $true
-$scrollPanel.Padding    = New-Object Windows.Forms.Padding(0, 0, 20, 0)
-$contentPanel.Controls.Add($scrollPanel)
-$scrollPanel.BringToFront()
+$scrollPanel.Padding    = New-Object Windows.Forms.Padding(0, 0, 10, 0)
+$pReparar.Controls.Add($scrollPanel)
 
 $script:cX = 0; $script:cY = 0
-
 function New-ToolCard($txt, $desc, $cmdBlock) {
     $card = New-Object Windows.Forms.Panel
-    $card.Size     = New-Object Drawing.Size(280, 150)
-    
-    $posX = $script:cX * 295
-    $posY = $script:cY * 165
-    $card.Location = New-Object Drawing.Point($posX, $posY)
+    $card.Size     = New-Object Drawing.Size(260, 150)
+    $card.Location = New-Object Drawing.Point(($script:cX * 275), ($script:cY * 165))
     
     $card.Add_Paint({
         param($s,$e)
         $g = $e.Graphics
         $g.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::AntiAlias
+        $ctrl = [System.Windows.Forms.Control]$s
         
-        $rect = New-Object Drawing.Rectangle(0, 0, $s.Width-1, $s.Height-1)
+        $rect = New-Object Drawing.Rectangle(0, 0, ($ctrl.Width - 1), ($ctrl.Height - 1))
         $path = Get-RoundedPath $rect 10
-        $brushBg = New-Object Drawing.SolidBrush($cBgCard)
+        $brushBg = New-Object Drawing.SolidBrush($cCard)
         $g.FillPath($brushBg, $path)
         $pen = New-Object Drawing.Pen($cBorder, 1)
         $g.DrawPath($pen, $path)
 
         $bText = New-Object Drawing.SolidBrush($cText)
-        $g.DrawString($txt, $fCardHead, $bText, 16, 16)
+        $g.DrawString($txt, $fCardHead, $bText, 14, 14)
 
-        $rectDesc = New-Object Drawing.RectangleF(16, 42, 248, 55)
+        $rectDesc = New-Object Drawing.RectangleF(14, 38, ($ctrl.Width - 28), 55)
         $bSubText = New-Object Drawing.SolidBrush($cSubText)
         $g.DrawString($desc, $fCardDesc, $bSubText, $rectDesc)
         
@@ -287,29 +275,28 @@ function New-ToolCard($txt, $desc, $cmdBlock) {
     })
     
     $btnExe = New-Object Windows.Forms.Panel
-    $btnExe.Size     = New-Object Drawing.Size(110, 30)
-    $btnExe.Location = New-Object Drawing.Point(16, 104)
+    $btnExe.Size     = New-Object Drawing.Size(100, 28)
+    $btnExe.Location = New-Object Drawing.Point(14, 105)
     $btnExe.Cursor   = "Hand"
-    $btnExe.BackColor = $cBgBtn
+    $btnExe.BackColor = $cPanel
     
     $btnExe.Add_Paint({
         param($s,$e)
         $g = $e.Graphics
         $g.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::AntiAlias
+        $ctrl = [System.Windows.Forms.Control]$s
         
-        $rectBtn = New-Object Drawing.Rectangle(0, 0, $s.Width-1, $s.Height-1)
+        $rectBtn = New-Object Drawing.Rectangle(0, 0, ($ctrl.Width - 1), ($ctrl.Height - 1))
         $pathBtn = Get-RoundedPath $rectBtn 6
-        $brushBtnBg = New-Object Drawing.SolidBrush($cBgBtn)
+        $brushBtnBg = New-Object Drawing.SolidBrush($cPanel)
         $g.FillPath($brushBtnBg, $pathBtn)
         $penBtn = New-Object Drawing.Pen($cBorder, 1)
         $g.DrawPath($penBtn, $pathBtn)
 
         $fB = New-Object Drawing.Font("Segoe UI", 8.5, [Drawing.FontStyle]::Bold)
         $bBtnText = New-Object Drawing.SolidBrush($cText)
-        $sfBtn = New-Object Drawing.StringFormat
-        $sfBtn.Alignment = "Center"
-        $sfBtn.LineAlignment = "Center"
-        $g.DrawString("Ejecutar", $fB, $bBtnText, [Drawing.RectangleF]::new(0, 0, $s.Width, $s.Height), $sfBtn)
+        $sfBtn = New-Object Drawing.StringFormat -Property @{Alignment="Center"; LineAlignment="Center"}
+        $g.DrawString("Ejecutar", $fB, $bBtnText, [Drawing.RectangleF]::new(0, 0, $ctrl.Width, $ctrl.Height), $sfBtn)
         
         $pathBtn.Dispose(); $brushBtnBg.Dispose(); $penBtn.Dispose(); $fB.Dispose(); $bBtnText.Dispose(); $sfBtn.Dispose()
     })
@@ -319,69 +306,151 @@ function New-ToolCard($txt, $desc, $cmdBlock) {
     $scrollPanel.Controls.Add($card)
     
     $script:cX++
-    if ($script:cX -ge 3) { 
-        $script:cX = 0 
-        $script:cY++ 
-    }
+    if ($script:cX -ge 3) { $script:cX = 0; $script:cY++ }
 }
 
-# Declaración limpia de módulos de ejecución
-New-ToolCard "SFC / Scannow" "Verifica y repara archivos dañados o ausentes del ecosistema Windows." {
-    Write-Log "Ejecutando SFC"
-    Start-Process powershell -ArgumentList "-NoProfile -Command `"sfc /scannow; pause`""
+# Inyección segura de módulos de reparación
+New-ToolCard "SFC / Scannow" "Sanea y repara archivos críticos de la instalación del sistema." {
+    Write-Out "Iniciando SFC /Scannow..." $cAccent
+    Start-Process powershell -ArgumentList "-NoProfile -Command `"sfc /scannow`"" -Wait
+    Write-Out "SFC Finalizado de forma segura." $cGreen
 }
-
-New-ToolCard "DISM RestoreHealth" "Repara y descarga imágenes limpias del sistema operativo mediante Windows Update." {
-    Write-Log "Ejecutando DISM"
-    Start-Process powershell -ArgumentList "-NoProfile -Command `"DISM /Online /Cleanup-Image /RestoreHealth; pause`""
+New-ToolCard "DISM Health" "Repara la imagen base corrupta usando repositorios locales o en la nube." {
+    Write-Out "Iniciando DISM Component Repair..." $cAccent
+    Start-Process powershell -ArgumentList "-NoProfile -Command `"DISM /Online /Cleanup-Image /RestoreHealth`"" -Wait
+    Write-Out "DISM Completado." $cGreen
 }
-
-New-ToolCard "Restablecer Windows Update" "Detiene y limpia el repositorio corrupto de SoftwareDistribution." {
-    Write-Log "Restableciendo actualizaciones"
-    $cmd = "net stop wuauserv; net stop bits; Remove-Item -Path C:\Windows\SoftwareDistribution -Recurse -Force -EA SilentlyContinue; net start wuauserv; pause"
-    Start-Process powershell -ArgumentList "-NoProfile -Command `"$cmd`""
+New-ToolCard "Reset Windows Update" "Purga los catálogos temporales dañados de SoftwareDistribution." {
+    Write-Out "Deteniendo servicios y vaciando caché de actualizaciones..." $cYellow
+    $cmd = "net stop wuauserv; net stop bits; Remove-Item -Path C:\Windows\SoftwareDistribution -Recurse -Force -EA SilentlyContinue; net start wuauserv"
+    Start-Process powershell -ArgumentList "-NoProfile -Command `"$cmd`"" -Wait
+    Write-Out "Componentes de Windows Update restablecidos." $cGreen
 }
-
-New-ToolCard "Restablecer Red" "Limpia de raíz la pila de sockets e interfaces de red IP locales." {
-    Write-Log "Reset de Red"
-    $cmd = "netsh winsock reset; netsh int ip reset; ipconfig /release; ipconfig /renew; pause"
-    Start-Process powershell -ArgumentList "-NoProfile -Command `"$cmd`""
-}
-
-New-ToolCard "Limpiar DNS" "Vacía el caché local de resolución de nombres DNS." {
-    Write-Log "Flush DNS"
-    Clear-DnsClientCache -EA SilentlyContinue
-    ipconfig /flushdns | Out-Null
-    [Windows.Forms.MessageBox]::Show("Cache DNS purgado de forma exitosa.", "SysCodi")
-}
-
-New-ToolCard "CheckDisk (C:)" "Sanea y repara sectores físicos corruptos en la unidad principal." {
-    Write-Log "CHKDSK Programado"
-    Start-Process cmd -ArgumentList "/c echo Y | chkdsk C: /f /r"
-    [Windows.Forms.MessageBox]::Show("Análisis de disco duro programado para el próximo reinicio de hardware.", "SysCodi")
+New-ToolCard "Restablecer Red IP" "Limpia las interfaces de red y la asignación de sockets." {
+    Write-Out "Restableciendo configuraciones de Red..." $cYellow
+    Start-Process powershell -ArgumentList "-NoProfile -Command `"netsh winsock reset; netsh int ip reset; ipconfig /flushdns`"" -Wait
+    Write-Out "Pila de red IP reiniciada correctamente." $cGreen
 }
 
 # ============================================================
-# BARRA DE ESTADO / FOOTER (Separada del Reloj)
+# CONTENIDO: PESTAÑA APLICACIONES (Tu Gestor Winget Original)
+# ============================================================
+$pApps = $tabPanels["apps"]
+
+$lblSearch = New-Object Windows.Forms.Label
+$lblSearch.Text     = "Filtrar Software:"
+$lblSearch.Location = New-Object Drawing.Point(15, 15)
+$lblSearch.Size     = New-Object Drawing.Size(100, 20)
+$pApps.Controls.Add($lblSearch)
+
+$txtSearch = New-Object Windows.Forms.TextBox
+$txtSearch.Location = New-Object Drawing.Point(120, 12)
+$txtSearch.Size     = New-Object Drawing.Size(200, 23)
+$txtSearch.BackColor= $cCard
+$txtSearch.ForeColor= $cText
+$pApps.Controls.Add($txtSearch)
+
+$btnInstall = New-Object Windows.Forms.Button
+$btnInstall.Text     = "Instalar Seleccionados"
+$btnInstall.Location = New-Object Drawing.Point(340, 10)
+$btnInstall.Size     = New-Object Drawing.Size(160, 26)
+$btnInstall.FlatStyle= "Flat"
+$btnInstall.FlatAppearance.BorderColor = $cBorder
+$btnInstall.BackColor= $cCard
+$pApps.Controls.Add($btnInstall)
+
+$appsFlow = New-Object Windows.Forms.FlowLayoutPanel
+$appsFlow.Location = New-Object Drawing.Point(15, 50)
+$appsFlow.Size     = New-Object Drawing.Size(500, 560)
+$appsFlow.AutoScroll = $true
+$pApps.Controls.Add($appsFlow)
+
+# Catálogo original de tu software de confianza
+$softwareList = @(
+    @{name="Google Chrome";     cmd="winget install Google.Chrome --silent --accept-package-agreements --accept-source-agreements"; foss=$false},
+    @{name="Mozilla Firefox";   cmd="winget install Mozilla.Firefox --silent"; foss=$true},
+    @{name="Brave Browser";     cmd="winget install Brave.Brave --silent"; foss=$false},
+    @{name="VS Code";           cmd="winget install Microsoft.VisualStudioCode --silent"; foss=$true},
+    @{name="Git v2.x";          cmd="winget install Git.Git --silent"; foss=$true},
+    @{name="Notepad++";         cmd="winget install Notepad++.Notepad++ --silent"; foss=$true},
+    @{name="7-Zip Utility";     cmd="winget install 7zip.7zip --silent"; foss=$true},
+    @{name="WinRAR Archive";    cmd="winget install RARLab.WinRAR --silent"; foss=$false},
+    @{name="VLC Media Player";  cmd="winget install VideoLAN.VLC --silent"; foss=$true},
+    @{name="AnyDesk Control";   cmd="winget install AnyDeskSoftwareGmbH.AnyDesk --silent"; foss=$false}
+)
+
+$checkboxes = @()
+foreach ($app in $softwareList) {
+    $cb = New-Object Windows.Forms.CheckBox
+    $cb.Text      = $app.name
+    $cb.Size      = New-Object Drawing.Size(220, 30)
+    $cb.ForeColor = if ($app.foss) { $cAccent2 } else { $cText }
+    $cb.Tag       = $app
+    $appsFlow.Controls.Add($cb)
+    $script:checkboxes += $cb
+}
+
+# Lógica del buscador reactivo
+$txtSearch.Add_TextChanged({
+    $q = $txtSearch.Text.Trim().ToLower()
+    foreach ($cb in $checkboxes) {
+        if ($q -and -not $cb.Text.ToLower().Contains($q)) {
+            $cb.Visible = $false
+        } else {
+            $cb.Visible = $true
+        }
+    }
+})
+
+# Ejecución real de descargas Winget
+$btnInstall.Add_Click({
+    $sel = $checkboxes | Where-Object { $_.Checked }
+    if ($sel.Count -eq 0) { Write-Out "No seleccionaste ningún software para instalar." $cYellow; return }
+    if (-not (Get-Command winget -EA SilentlyContinue)) {
+        Write-Out "Error: WinGet no está instalado en este equipo." $cRed
+        return
+    }
+    Write-Out "Iniciando instalación masiva de $($sel.Count) aplicaciones..." $cAccent
+    foreach ($cb in $sel) {
+        Write-Out "Instalando $($cb.Tag.name)... Por favor espera" $cSubText
+        Start-Process powershell -ArgumentList "-NoProfile -WindowStyle Hidden -Command `"$($cb.Tag.cmd)`"" -Wait -EA SilentlyContinue
+        Write-Out "Completado con éxito: $($cb.Tag.name)" $cGreen
+        $cb.Checked = $false
+        [Windows.Forms.Application]::DoEvents()
+    }
+    Write-Out "Todos los despliegues de software han finalizado." $cGreen
+})
+
+# ============================================================
+# PANEL DE BIENVENIDA / DASHBOARD POR DEFECTO
+# ============================================================
+$pDash = $tabPanels["dashboard"]
+$lblDash = New-Object Windows.Forms.Label
+$lblDash.Text = "BIENVENIDO A SYSCODI WINTOOL`n`nSelecciona una sección en el menú superior para comenzar.`nLas salidas y logs de comandos aparecerán en tiempo real a la derecha."
+$lblDash.Font = $fCardHead
+$lblDash.Size = New-Object Drawing.Size(500, 200)
+$pDash.Controls.Add($lblDash)
+
+# ============================================================
+# FOOTER / BARRA DE ESTADO DE CONTROL INDEPENDIENTE
 # ============================================================
 $footerBar = New-Object Windows.Forms.Panel
 $footerBar.Dock      = "Bottom"
 $footerBar.Height    = 35
-$footerBar.BackColor = $cBgSide
-$footerBar.Padding   = New-Object Windows.Forms.Padding(24, 0, 24, 0)
+$footerBar.BackColor = $cPanel
 $mainContainer.Controls.Add($footerBar)
 
 $lblStatus = New-Object Windows.Forms.Label
 $lblStatus.AutoSize = $true
-$lblStatus.Location = New-Object Drawing.Point(12, 10)
+$lblStatus.Location = New-Object Drawing.Point(15, 10)
 $lblStatus.Font = $fStatus
 $lblStatus.ForeColor = $cGreen
-$lblStatus.Text = "Sistema funcionando correctamente"
+$lblStatus.Text = "Listo para operar"
 $footerBar.Controls.Add($lblStatus)
 
 $lblClock = New-Object Windows.Forms.Label
 $lblClock.Size = New-Object Drawing.Size(200, 20)
-$lblClock.Location = New-Object Drawing.Point(($footerBar.Width - 210), 10)
+$lblClock.Location = New-Object Drawing.Point(($form.Width - 540), 10)
 $lblClock.Anchor = "Right"
 $lblClock.Font = $fClock
 $lblClock.ForeColor = $cSubText
@@ -389,7 +458,7 @@ $lblClock.TextAlign = "MiddleRight"
 $lblClock.Text = (Get-Date -Format "dd/MM/yyyy  HH:mm:ss")
 $footerBar.Controls.Add($lblClock)
 
-# Timer dedicado exclusivamente al reloj (Evita invalidaciones recursivas pesadas)
+# Timer asíncrono para refrescar la hora de forma segura
 $timer = New-Object Windows.Forms.Timer
 $timer.Interval = 1000
 $timer.Add_Tick({ 
@@ -398,4 +467,9 @@ $timer.Add_Tick({
 $timer.Start()
 
 $form.Add_FormClosing({ $timer.Stop() })
+
+# Inicialización por defecto en el Dashboard
+Switch-Tab "dashboard"
+Write-Out "Consola inicializada correctamente. Modo administrador activo." $cGreen
+
 $form.ShowDialog() | Out-Null
