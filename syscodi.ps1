@@ -25,23 +25,25 @@ $output.Location = New-Object Drawing.Point(10, 100); $output.Size = New-Object 
 $form.Controls.Add($output)
 
 # --- BOTONES ---
+# Botón 1: Limpieza
 $btn1 = New-Object Windows.Forms.Button; $btn1.Text = "Limpiar Temp"; $btn1.Location = New-Object Drawing.Point(10, 10); $btn1.Size = New-Object Drawing.Size(120, 30)
 $btn1.Add_Click({
     $output.Items.Add("Iniciando limpieza...")
     Start-Job2 {
-        # Usamos 'Write-Output' para devolver el texto correctamente
-        Remove-Item "$env:TEMP\*" -Recurse -Force -EA SilentlyContinue
-        Write-Output "Limpieza de temporales completada."
+        $paths = @("$env:TEMP\*", "C:\Windows\Temp\*")
+        foreach ($p in $paths) { Get-ChildItem $p -Recurse -Force -EA SilentlyContinue | Remove-Item -Recurse -Force -EA SilentlyContinue }
+        return "Limpieza de temporales completada." 
     }
 })
 $form.Controls.Add($btn1)
 
+# Botón 2: DNS
 $btn2 = New-Object Windows.Forms.Button; $btn2.Text = "Flush DNS"; $btn2.Location = New-Object Drawing.Point(140, 10); $btn2.Size = New-Object Drawing.Size(120, 30)
 $btn2.Add_Click({
     $output.Items.Add("Limpiando DNS...")
     Start-Job2 { 
         ipconfig /flushdns | Out-Null
-        Write-Output "Caché DNS vaciada con éxito." 
+        return "Cache DNS vaciada con exito." 
     }
 })
 $form.Controls.Add($btn2)
@@ -51,16 +53,20 @@ $jt = New-Object Windows.Forms.Timer; $jt.Interval = 800
 $jt.Add_Tick({
     foreach ($j in $Global:Jobs.ToArray()) {
         if ($j.Handle.IsCompleted) {
-            # Recogemos la salida del PowerShell y convertimos a texto plano
+            # Recogemos resultados del job
             $results = $j.PS.EndInvoke($j.Handle)
-            foreach ($res in $results) {
-                $output.Items.Add($res.ToString())
+            
+            # Filtro estricto: solo añadimos si es un string (texto plano)
+            if ($results -is [string]) {
+                $output.Items.Add($results)
             }
+            
             $j.PS.Dispose(); $Global:Jobs.Remove($j)
         }
     }
 })
 $jt.Start()
 
-$form.Add_FormClosing({ $Global:RSPool.Close(); $Global:RSPool.Dispose() })
+# --- CIERRE SEGURO ---
+$form.Add_FormClosing({ $jt.Stop(); $Global:RSPool.Close(); $Global:RSPool.Dispose() })
 [Windows.Forms.Application]::Run($form)
