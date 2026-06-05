@@ -62,6 +62,46 @@ $form.FormBorderStyle = 'FixedSingle'; $form.MaximizeBox = $false; $form.StartPo
 $form.BackColor = $cBg
 
 # [Aquí iría tu construcción de paneles, botones y lógica de eventos]
+# --- SECCIÓN 1: LIMPIEZA DEL SISTEMA ---
+New-SecLbl 'Limpieza de temporales' 10
+
+$c1 = New-Card 28 90
+$l1 = New-Object Windows.Forms.Label
+$l1.Text = 'Elimina archivos temporales y caché del sistema para liberar espacio.'
+$l1.Location = New-Object Drawing.Point(12, 10); $l1.Size = New-Object Drawing.Size(464, 32)
+$l1.ForeColor = $cMut; $l1.Font = New-Object Drawing.Font('Segoe UI', 8); $l1.BackColor = [Drawing.Color]::Transparent
+$c1.Controls.Add($l1)
+
+# Botón: Limpiar Temporales
+$bT1 = New-Btn 'Limpiar Temporales' 12 46 220 34 'blue'
+$bT1.Add_Click({
+    Write-Log 'Iniciando limpieza de temporales...' 'sub'
+    Start-Job2 {
+        $count = 0
+        $paths = @("$env:TEMP\*", "C:\Windows\Temp\*")
+        foreach ($path in $paths) {
+            Get-ChildItem $path -EA SilentlyContinue | ForEach-Object {
+                try { Remove-Item $_.FullName -Recurse -Force -ErrorAction Stop; $count++ } catch {}
+            }
+        }
+        return @{msg = "Limpieza completada. $count elementos eliminados."; color = 'ok'}
+    }
+})
+$c1.Controls.Add($bT1)
+
+# Botón: Limpiar Prefetch
+$bT2 = New-Btn 'Limpiar Prefetch' 242 46 220 34 'blue'
+$bT2.Add_Click({
+    Write-Log 'Limpiando Prefetch...' 'sub'
+    Start-Job2 {
+        $path = "C:\Windows\Prefetch\*"
+        $files = Get-ChildItem $path -EA SilentlyContinue
+        $count = $files.Count
+        foreach ($f in $files) { try { Remove-Item $f.FullName -Recurse -Force -ErrorAction Stop } catch {} }
+        return @{msg = "Prefetch limpiado ($count archivos)."; color = 'ok'}
+    }
+})
+$c1.Controls.Add($bT2)
 # (He omitido las líneas de construcción para mantener el código conciso, 
 #  puedes mantener exactamente tu bloque original aquí).
 
