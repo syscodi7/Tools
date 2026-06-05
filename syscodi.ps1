@@ -2,26 +2,7 @@
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-# --- ELEVACIÓN DE PRIVILEGIOS ---
-if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    Start-Process powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
-    exit
-}
 
-# --- CONFIGURACIÓN GLOBAL ---
-$Global:RSPool = [RunspaceFactory]::CreateRunspacePool(1, 4)
-$Global:RSPool.ApartmentState = 'STA'
-$Global:RSPool.Open()
-$Global:Jobs = [System.Collections.Generic.List[hashtable]]::new()
-
-function Start-Job2([scriptblock]$Code, [object[]]$Args = @()) {
-    $ps = [PowerShell]::Create()
-    $ps.RunspacePool = $Global:RSPool
-    [void]$ps.AddScript($Code)
-    foreach ($a in $Args) { [void]$ps.AddArgument($a) }
-    $h = $ps.BeginInvoke()
-    $Global:Jobs.Add(@{ PS = $ps; Handle = $h })
-}
 
 # --- COLORES Y ESTILOS ---
 $cBg = [Drawing.Color]::FromArgb(15, 23, 42); $cPanel = [Drawing.Color]::FromArgb(22, 33, 62)
