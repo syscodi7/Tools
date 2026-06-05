@@ -276,7 +276,7 @@ $outputBox.BackColor=$cOut; $outputBox.ForeColor=$cAcc
 $outputBox.Font=New-Object Drawing.Font('Consolas',8); $outputBox.ReadOnly=$true
 $outputBox.BorderStyle='None'; $outputBox.WordWrap=$true
 $conPanel.Controls.Add($outputBox)
-$conPanel.Add_Resize({$outputBox.Size=New-Object Drawing.Size($conPanel.Width,$conPanel.Height-31)})
+$conPanel.Add_Resize({ $w = $conPanel.Width; $h = $conPanel.Height - 31; $outputBox.Size = New-Object Drawing.Size($w, $h) })
 
 # STATUS BAR
 $sb=New-Object Windows.Forms.Panel
