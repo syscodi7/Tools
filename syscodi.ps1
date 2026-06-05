@@ -2,101 +2,58 @@
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-# --- CONFIGURACIÓN GLOBAL ---
+# --- GESTIÓN DE TRABAJOS ---
 $Global:RSPool = [RunspaceFactory]::CreateRunspacePool(1, 4)
 $Global:RSPool.ApartmentState = 'STA'
 $Global:RSPool.Open()
 $Global:Jobs = [System.Collections.Generic.List[hashtable]]::new()
 
-# --- FUNCIONES DE LÓGICA ---
-function Start-Job2([scriptblock]$Code, [object[]]$Args = @()) {
+function Start-Job2([scriptblock]$Code) {
     $ps = [PowerShell]::Create(); $ps.RunspacePool = $Global:RSPool
     [void]$ps.AddScript($Code)
-    foreach ($a in $Args) { [void]$ps.AddArgument($a) }
     $h = $ps.BeginInvoke()
     $Global:Jobs.Add(@{ PS = $ps; Handle = $h })
 }
 
-function Write-Log($msg, $type = 'n') {
-    if ($outputBox.Lines.Count -gt 300) { $outputBox.Clear() }
-    $ts = Get-Date -Format 'HH:mm:ss'
-    $outputBox.SelectionStart = $outputBox.TextLength
-    $outputBox.AppendText("`n[$ts] $msg")
-    $outputBox.ScrollToCaret()
-}
-
-# --- CONFIGURACIÓN UI ---
-$cBg = [Drawing.Color]::FromArgb(15, 23, 42); $cCard = [Drawing.Color]::FromArgb(30, 45, 80)
-$cAcc = [Drawing.Color]::FromArgb(56, 189, 248); $cText = [Drawing.Color]::FromArgb(226, 232, 240)
-$cOut = [Drawing.Color]::FromArgb(10, 16, 30)
-
+# --- FORMULARIO SIMPLE ---
 $form = New-Object Windows.Forms.Form
-$form.Text = 'SysCodi QuickFix Pro'; $form.Size = New-Object Drawing.Size(800, 600)
-$form.StartPosition = 'CenterScreen'; $form.BackColor = $cBg
+$form.Text = 'SysCodi QuickFix Lite'; $form.Size = New-Object Drawing.Size(400, 350)
+$form.StartPosition = 'CenterScreen'
 
-# --- SISTEMA DE PESTAÑAS (Navegación limpia) ---
-$tabControl = New-Object Windows.Forms.TabControl
-$tabControl.Location = New-Object Drawing.Point(0, 60); $tabControl.Size = New-Object Drawing.Size(550, 450)
-$tabControl.Appearance = 'FlatButtons'; $tabControl.ItemSize = New-Object Drawing.Size(0, 1); $tabControl.SizeMode = 'Fixed'
+$output = New-Object Windows.Forms.ListBox
+$output.Location = New-Object Drawing.Point(10, 100); $output.Size = New-Object Drawing.Size(360, 200)
+$form.Controls.Add($output)
 
-$tabLimpieza = New-Object Windows.Forms.TabPage; $tabLimpieza.BackColor = $cBg
-$tabRed = New-Object Windows.Forms.TabPage; $tabRed.BackColor = $cBg
-$tabControl.Controls.AddRange(@($tabLimpieza, $tabRed))
-$form.Controls.Add($tabControl)
-
-# --- BOTONES DE NAVEGACIÓN ---
-function New-NavBtn($txt, $x, $tab) {
-    $b = New-Object Windows.Forms.Button
-    $b.Text = $txt; $b.Location = New-Object Drawing.Point($x, 15); $b.Size = New-Object Drawing.Size(120, 35)
-    $b.BackColor = $cCard; $b.ForeColor = $cText; $b.FlatStyle = 'Flat'; $b.Cursor = 'Hand'
-    $b.Add_Click({ $tabControl.SelectedTab = $tab })
-    return $b
-}
-$form.Controls.Add((New-NavBtn 'Limpieza' 20 $tabLimpieza))
-$form.Controls.Add((New-NavBtn 'Red' 150 $tabRed))
-
-# --- HERRAMIENTAS: LIMPIEZA ---
-$btnTemp = New-Object Windows.Forms.Button; $btnTemp.Text = "Borrar Temporales"; $btnTemp.Location = New-Object Drawing.Point(20, 20); $btnTemp.Size = New-Object Drawing.Size(150, 40)
-$btnTemp.Add_Click({
-    Write-Log "Iniciando limpieza (esto puede tardar)..."
+# --- HERRAMIENTAS ---
+$btn1 = New-Object Windows.Forms.Button; $btn1.Text = "Limpiar Temp"; $btn1.Location = New-Object Drawing.Point(10, 10); $btn1.Size = New-Object Drawing.Size(120, 30)
+$btn1.Add_Click({
+    $output.Items.Add("Iniciando limpieza...")
     Start-Job2 {
-        $paths = @("$env:TEMP\*", "C:\Windows\Temp\*")
-        foreach ($p in $paths) { Get-ChildItem $p -Recurse -Force -EA SilentlyContinue | Remove-Item -Recurse -Force -EA SilentlyContinue }
-        return @{msg="Temporales eliminados."; color='ok'}
+        Remove-Item "$env:TEMP\*" -Recurse -Force -EA SilentlyContinue
+        return "Limpieza completa."
     }
 })
-$tabLimpieza.Controls.Add($btnTemp)
+$form.Controls.Add($btn1)
 
-# --- HERRAMIENTAS: RED ---
-$btnDns = New-Object Windows.Forms.Button; $btnDns.Text = "Flush DNS"; $btnDns.Location = New-Object Drawing.Point(20, 20); $btnDns.Size = New-Object Drawing.Size(150, 40)
-$btnDns.Add_Click({
-    Write-Log "Ejecutando ipconfig /flushdns..."
-    Start-Job2 {
-        ipconfig /flushdns | Out-Null
-        return @{msg="Caché DNS limpia."; color='ok'}
-    }
+$btn2 = New-Object Windows.Forms.Button; $btn2.Text = "Flush DNS"; $btn2.Location = New-Object Drawing.Point(140, 10); $btn2.Size = New-Object Drawing.Size(120, 30)
+$btn2.Add_Click({
+    $output.Items.Add("Limpiando DNS...")
+    Start-Job2 { ipconfig /flushdns | Out-Null; return "DNS vaciado." }
 })
-$tabRed.Controls.Add($btnDns)
+$form.Controls.Add($btn2)
 
-# --- CONSOLA Y TIMER ---
-$outputBox = New-Object Windows.Forms.RichTextBox
-$outputBox.Location = New-Object Drawing.Point(560, 20); $outputBox.Size = New-Object Drawing.Size(210, 520)
-$outputBox.BackColor = $cOut; $outputBox.ForeColor = $cAcc; $outputBox.ReadOnly = $true
-$form.Controls.Add($outputBox)
-
-$jt = New-Object Windows.Forms.Timer; $jt.Interval = 800
+# --- TIMER MÍNIMO ---
+$jt = New-Object Windows.Forms.Timer; $jt.Interval = 1000
 $jt.Add_Tick({
-    $toRemove = New-Object System.Collections.Generic.List[hashtable]
-    foreach ($j in $Global:Jobs) {
+    foreach ($j in $Global:Jobs.ToArray()) {
         if ($j.Handle.IsCompleted) {
-            $res = $j.PS.EndInvoke($j.Handle)
-            foreach ($r in $res) { if ($r -is [hashtable]) { Write-Log $r.msg } }
-            $j.PS.Dispose(); $toRemove.Add($j)
+            $msg = $j.PS.EndInvoke($j.Handle)
+            $output.Items.Add($msg)
+            $j.PS.Dispose(); $Global:Jobs.Remove($j)
         }
     }
-    foreach ($item in $toRemove) { $Global:Jobs.Remove($item) }
 })
 $jt.Start()
 
-$form.Add_FormClosing({ $jt.Stop(); $Global:RSPool.Close(); $Global:RSPool.Dispose() })
+$form.Add_FormClosing({ $Global:RSPool.Close(); $Global:RSPool.Dispose() })
 [Windows.Forms.Application]::Run($form)
