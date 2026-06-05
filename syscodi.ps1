@@ -41,19 +41,21 @@ $btn2.Add_Click({
     Start-Job2 { ipconfig /flushdns | Out-Null; return "DNS vaciado." }
 })
 $form.Controls.Add($btn2)
-
-# --- TIMER MÍNIMO ---
-$jt = New-Object Windows.Forms.Timer; $jt.Interval = 1000
+# --- TIMER CORREGIDO ---
 $jt.Add_Tick({
     foreach ($j in $Global:Jobs.ToArray()) {
         if ($j.Handle.IsCompleted) {
-            $msg = $j.PS.EndInvoke($j.Handle)
-            $output.Items.Add($msg)
+            # Recogemos los resultados del PowerShell object
+            $results = $j.PS.EndInvoke($j.Handle)
+            
+            # Convertimos el resultado a string limpio
+            foreach ($res in $results) {
+                $output.Items.Add($res.ToString())
+            }
+            
+            # Limpiamos
             $j.PS.Dispose(); $Global:Jobs.Remove($j)
         }
     }
 })
-$jt.Start()
 
-$form.Add_FormClosing({ $Global:RSPool.Close(); $Global:RSPool.Dispose() })
-[Windows.Forms.Application]::Run($form)
