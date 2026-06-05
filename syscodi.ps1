@@ -81,5 +81,21 @@ $outputBox = New-Object Windows.Forms.RichTextBox
 $outputBox.Location = New-Object Drawing.Point(560, 20); $outputBox.Size = New-Object Drawing.Size(210, 520)
 $outputBox.BackColor = $cOut; $outputBox.ForeColor = $cAcc; $form.Controls.Add($outputBox)
 
-$form.Add_FormClosing({ $Global:RSPool.Close(); $Global:RSPool.Dispose() })
+# --- TIMER Y CIERRE ---
+$jt = New-Object Windows.Forms.Timer; $jt.Interval = 500
+$jt.Add_Tick({
+    $toRemove = New-Object System.Collections.Generic.List[hashtable]
+    foreach ($j in $Global:Jobs) {
+        if ($j.Handle.IsCompleted) {
+            $res = $j.PS.EndInvoke($j.Handle)
+            foreach ($r in $res) { if ($r -is [hashtable]) { Write-Log $r.msg $r.color } }
+            $j.PS.Dispose(); $toRemove.Add($j)
+        }
+    }
+    foreach ($item in $toRemove) { $Global:Jobs.Remove($item) }
+})
+$jt.Start()
+
+$form.Add_FormClosing({ $jt.Stop(); $Global:RSPool.Close(); $Global:RSPool.Dispose() })
 [Windows.Forms.Application]::Run($form)
+
