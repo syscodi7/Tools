@@ -454,6 +454,39 @@ $btnStartup.Add_Click({
     }
 })
 $tabRepair.Controls.Add($btnStartup)
+
+Make-Section "Activacion Windows / Office (MAS)" 10 296 $tabRepair
+
+$btnActivarWin = Make-Button "Activar Windows" 10 320 190 34 $C.Purple
+$btnActivarWin.Add_Click({
+    if (-not (Confirm-Action "Se ejecutara: irm https://get.activated.win | iex`n`nEsto activa Windows usando Microsoft Activation Scripts (MAS).`n`nAVISO: Ejecutas codigo remoto bajo tu responsabilidad.`n`nContinuar?")) { return }
+    Log "Lanzando script MAS para activar Windows..." "INFO"
+    Start-Process powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command `"irm https://get.activated.win | iex`"" -Verb RunAs
+    Log "Script MAS lanzado en ventana separada. Sigue las instrucciones." "OK"
+})
+$tabRepair.Controls.Add($btnActivarWin)
+
+$btnActivarOffice = Make-Button "Activar Office" 210 320 190 34 $C.Purple
+$btnActivarOffice.Add_Click({
+    if (-not (Confirm-Action "Se ejecutara: irm https://get.activated.win | iex`n`nEsto activa Office usando Microsoft Activation Scripts (MAS).`n`nAVISO: Ejecutas codigo remoto bajo tu responsabilidad.`n`nContinuar?")) { return }
+    Log "Lanzando script MAS para activar Office..." "INFO"
+    Start-Process powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command `"irm https://get.activated.win | iex`"" -Verb RunAs
+    Log "Script MAS lanzado en ventana separada. Sigue las instrucciones." "OK"
+})
+$tabRepair.Controls.Add($btnActivarOffice)
+
+$btnMASInfo = Make-Button "Info sobre MAS" 410 320 190 34 $C.Card
+$btnMASInfo.Font = New-Object Drawing.Font("Segoe UI", 8)
+$btnMASInfo.Add_Click({
+    Log "--- Microsoft Activation Scripts (MAS) ---" "TITLE"
+    Log "Proyecto open source: https://github.com/massgravel/Microsoft-Activation-Scripts" "INFO"
+    Log "Comando: irm https://get.activated.win | iex" "INFO"
+    Log "Soporta: Windows 7/8.1/10/11, Server 2008-2022, Office 2010-2024, Microsoft 365" "INFO"
+    Log "Metodo: HWID (Windows), Ohook (Office), KMS38 (Windows alternativo)" "INFO"
+    Log "Requiere conexion a internet y ejecucion como administrador." "WARN"
+})
+$tabRepair.Controls.Add($btnMASInfo)
+
 # PLACEHOLDER: TAB 3 - APLICACIONES
 # ============================================================
 #   TAB 3: APLICACIONES
