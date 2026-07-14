@@ -120,8 +120,8 @@ function Make-Card($title, $subtitle, $parent, $y, $h = 110) {
     if ($subtitle) {
         $ls = New-Object Windows.Forms.Label
         $ls.Text = $subtitle
-        $ls.Location = New-Object Drawing.Point(10, 30)
-        $ls.Size = New-Object Drawing.Size(670, 16)
+        $ls.Location = New-Object Drawing.Point(10, 26)
+        $ls.Size = New-Object Drawing.Size(670, 14)
         $ls.ForeColor = $C.SubText
         $ls.Font = New-Object Drawing.Font("Segoe UI", 7.5)
         $p.Controls.Add($ls)
@@ -724,19 +724,19 @@ $tabSys.Controls.Add($btnKillProc)
 Make-Section "Descargador de YouTube" 10 8 $tabYT
 
 # ===== CARD 1: Configuracion de Descarga =====
-$cardYT = Make-Card "Configuracion de Descarga" "Requiere yt-dlp y ffmpeg instalados" $tabYT 32 185
+$cardYT = Make-Card "Configuracion de Descarga" "Requiere yt-dlp y ffmpeg instalados" $tabYT 28 200
 
 # URL
 $lblURL = New-Object Windows.Forms.Label
 $lblURL.Text = "URL del video:"
-$lblURL.Location = New-Object Drawing.Point(10, 35)
+$lblURL.Location = New-Object Drawing.Point(10, 32)
 $lblURL.Size = New-Object Drawing.Size(90, 20)
 $lblURL.ForeColor = $C.Text
 $lblURL.Font = New-Object Drawing.Font("Segoe UI", 8.5)
 $cardYT.Controls.Add($lblURL)
 
 $txtURL = New-Object Windows.Forms.TextBox
-$txtURL.Location = New-Object Drawing.Point(105, 33)
+$txtURL.Location = New-Object Drawing.Point(105, 30)
 $txtURL.Size = New-Object Drawing.Size(570, 24)
 $txtURL.BackColor = $C.Surface
 $txtURL.ForeColor = $C.Text
