@@ -724,7 +724,7 @@ $tabSys.Controls.Add($btnKillProc)
 Make-Section "Descargador de YouTube" 10 8 $tabYT
 
 # ===== CARD 1: Configuracion de Descarga =====
-$cardYT = Make-Card "Configuracion de Descarga" "Requiere yt-dlp y ffmpeg instalados" $tabYT 32 150
+$cardYT = Make-Card "Configuracion de Descarga" $tabYT 32 150
 
 # URL
 $lblURL = New-Object Windows.Forms.Label
