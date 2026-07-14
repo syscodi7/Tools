@@ -1002,63 +1002,7 @@ $lblReq.ForeColor = $C.SubText
 $lblReq.Font = New-Object Drawing.Font("Consolas", 8.5)
 $cardReq.Controls.Add($lblReq)
 
-# ============================================================
-#   CARD: INSTALADOR DE APLICACIONES (Google Chrome + PDFCreator)
-# ============================================================
-$cardApps = Make-Card "Instalador Rapido" "Google Chrome y PDFCreator" $tabYT 360 140
-$cardApps.Size = New-Object Drawing.Size(690, 140)
 
-$lblChrome = New-Object Windows.Forms.Label
-$lblChrome.Text = "Google Chrome - Navegador web rapido y seguro"
-$lblChrome.Location = New-Object Drawing.Point(10, 30)
-$lblChrome.Size = New-Object Drawing.Size(450, 20)
-$lblChrome.ForeColor = $C.Text
-$lblChrome.Font = New-Object Drawing.Font("Segoe UI", 9)
-$cardApps.Controls.Add($lblChrome)
-
-$btnInstallChrome = Make-Button "Instalar Chrome" 470 28 200 26 $C.Green
-$btnInstallChrome.Font = New-Object Drawing.Font("Segoe UI", 8)
-$btnInstallChrome.Add_Click({
-    Log "Instalando Google Chrome via winget..." "INFO"
-    try {
-        $r = winget install -e --id Google.Chrome --silent --accept-package-agreements --accept-source-agreements 2>&1
-        Log "Google Chrome instalado correctamente." "OK"
-    } catch {
-        Log "Error instalando Chrome: $_" "ERR"
-        Log "Intenta descargarlo manualmente desde: https://www.google.com/chrome/" "INFO"
-    }
-})
-$cardApps.Controls.Add($btnInstallChrome)
-
-$lblPDF = New-Object Windows.Forms.Label
-$lblPDF.Text = "PDFCreator - Crea archivos PDF desde cualquier aplicacion"
-$lblPDF.Location = New-Object Drawing.Point(10, 65)
-$lblPDF.Size = New-Object Drawing.Size(450, 20)
-$lblPDF.ForeColor = $C.Text
-$lblPDF.Font = New-Object Drawing.Font("Segoe UI", 9)
-$cardApps.Controls.Add($lblPDF)
-
-$btnInstallPDF = Make-Button "Instalar PDFCreator" 470 63 200 26 $C.Green
-$btnInstallPDF.Font = New-Object Drawing.Font("Segoe UI", 8)
-$btnInstallPDF.Add_Click({
-    Log "Instalando PDFCreator via winget..." "INFO"
-    try {
-        $r = winget install -e --id pdfforge.PDFCreator --silent --accept-package-agreements --accept-source-agreements 2>&1
-        Log "PDFCreator instalado correctamente." "OK"
-    } catch {
-        Log "Error instalando PDFCreator: $_" "ERR"
-        Log "Descarga manual: https://www.pdfforge.org/pdfcreator" "INFO"
-    }
-})
-$cardApps.Controls.Add($btnInstallPDF)
-
-$lblWeb = New-Object Windows.Forms.Label
-$lblWeb.Text = "Sitios oficiales:  chrome.google.com  |  pdfforge.org/pdfcreator"
-$lblWeb.Location = New-Object Drawing.Point(10, 100)
-$lblWeb.Size = New-Object Drawing.Size(660, 20)
-$lblWeb.ForeColor = $C.SubText
-$lblWeb.Font = New-Object Drawing.Font("Segoe UI", 7.5)
-$cardApps.Controls.Add($lblWeb)
 
 # ============================================================
 #   FOOTER
