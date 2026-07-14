@@ -1,5 +1,5 @@
 # ============================================================
-#   Syscodi7 System Toolkit v1.2
+#   NovaTech System Toolkit v1.2
 #   Herramienta de administracion avanzada para Windows
 #   Requiere: PowerShell 5.1+ | Ejecutar como Administrador
 # ============================================================
@@ -35,7 +35,7 @@ $C = @{
 # ============================================================
 #   LOG AUTOMATICO
 # ============================================================
-$script:LogPath = "$env:TEMP\Syscodi7_Log_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
+$script:LogPath = "$env:TEMP\NovaTech_Log_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
 $script:LogLines = [System.Collections.ArrayList]::new()
 $script:DownloadHistory = [System.Collections.ArrayList]::new()
 
@@ -61,7 +61,7 @@ function Log($msg, $level = "INFO") {
 }
 
 function Confirm-Action($msg) {
-    $r = [Windows.Forms.MessageBox]::Show($msg, "Syscodi7 - Confirmar",
+    $r = [Windows.Forms.MessageBox]::Show($msg, "NovaTech - Confirmar",
         [Windows.Forms.MessageBoxButtons]::YesNo,
         [Windows.Forms.MessageBoxIcon]::Warning)
     return ($r -eq [Windows.Forms.DialogResult]::Yes)
@@ -144,7 +144,7 @@ function Run-Safe($cmd, $desc) {
 #   FORMULARIO PRINCIPAL
 # ============================================================
 $form = New-Object Windows.Forms.Form
-$form.Text = "Syscodi7 System Toolkit v1.2"
+$form.Text = "NovaTech System Toolkit v1.2"
 $form.Size = New-Object Drawing.Size(1150, 680)
 $form.StartPosition = "CenterScreen"
 $form.BackColor = $C.Bg
@@ -163,7 +163,7 @@ $header.BackColor = $C.Surface
 $form.Controls.Add($header)
 
 $lblT = New-Object Windows.Forms.Label
-$lblT.Text = "Syscodi7"
+$lblT.Text = "NOVATECH"
 $lblT.Font = New-Object Drawing.Font("Segoe UI", 16, [Drawing.FontStyle]::Bold)
 $lblT.ForeColor = $C.Accent
 $lblT.Location = New-Object Drawing.Point(15, 8)
@@ -230,7 +230,7 @@ $btnSaveLog.Font = New-Object Drawing.Font("Segoe UI", 7)
 $btnSaveLog.Add_Click({
     $dlg = New-Object Windows.Forms.SaveFileDialog
     $dlg.Filter = "Log (*.log)|*.log|Texto (*.txt)|*.txt"
-    $dlg.FileName = "Syscodi7_Log_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
+    $dlg.FileName = "NovaTech_Log_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
     if ($dlg.ShowDialog() -eq "OK") {
         $outputBox.Text | Set-Content $dlg.FileName -Encoding UTF8
         Log "Log guardado: $($dlg.FileName)" "OK"
@@ -251,7 +251,7 @@ $outputBox.ForeColor = $C.Accent2
 $outputBox.Font = New-Object Drawing.Font("Consolas", 8.5)
 $outputBox.ReadOnly = $true
 $outputBox.BorderStyle = "None"
-$outputBox.Text = "  Syscodi7 System Toolkit v1.2`n  Listo. Selecciona una opcion."
+$outputBox.Text = "  NovaTech System Toolkit v1.2`n  Listo. Selecciona una opcion."
 $rightP.Controls.Add($outputBox)
 
 # Guardar log automatico al cerrar
@@ -416,7 +416,7 @@ $btnRestorePt = Make-Button "Crear Punto de Restauracion" 210 176 220 34
 $btnRestorePt.Add_Click({
     Log "Creando punto de restauracion..." "INFO"
     try {
-        Checkpoint-Computer -Description "Syscodi7 Backup $(Get-Date -Format 'dd/MM/yyyy HH:mm')" -RestorePointType MODIFY_SETTINGS
+        Checkpoint-Computer -Description "NovaTech Backup $(Get-Date -Format 'dd/MM/yyyy HH:mm')" -RestorePointType MODIFY_SETTINGS
         Log "Punto de restauracion creado." "OK"
     } catch { Log "Error: $_" "ERR" }
 })
@@ -675,7 +675,7 @@ $btnExpReport = Make-Button "Exportar Reporte" 545 320 150 34
 $btnExpReport.Add_Click({
     $dlg = New-Object Windows.Forms.SaveFileDialog
     $dlg.Filter = "Texto (*.txt)|*.txt"
-    $dlg.FileName = "Syscodi7_Reporte_$(Get-Date -Format 'yyyyMMdd_HHmmss').txt"
+    $dlg.FileName = "NovaTech_Reporte_$(Get-Date -Format 'yyyyMMdd_HHmmss').txt"
     if ($dlg.ShowDialog() -eq "OK") {
         $infoBox.Text | Set-Content $dlg.FileName -Encoding UTF8
         Log "Reporte guardado: $($dlg.FileName)" "OK"
@@ -705,7 +705,7 @@ $tabSys.Controls.Add($btnTopMem)
 
 $btnKillProc = Make-Button "Matar Proceso por Nombre" 430 389 240 34 $C.Red
 $btnKillProc.Add_Click({
-    $input = [Microsoft.VisualBasic.Interaction]::InputBox("Nombre del proceso (sin .exe):", "Syscodi7", "")
+    $input = [Microsoft.VisualBasic.Interaction]::InputBox("Nombre del proceso (sin .exe):", "NovaTech", "")
     if ($input) {
         $procs = Get-Process -Name $input -EA SilentlyContinue
         if ($procs) {
@@ -1161,7 +1161,7 @@ $cardHistory.Controls.Add($btnCopyURL)
 #   FOOTER
 # ============================================================
 $footer = New-Object Windows.Forms.Label
-$footer.Text = "Syscodi7 System Toolkit v1.2  |  PowerShell + WinForms  |  Ejecutar como Administrador"
+$footer.Text = "NovaTech System Toolkit v1.2  |  PowerShell + WinForms  |  Ejecutar como Administrador"
 $footer.Location = New-Object Drawing.Point(0, 622)
 $footer.Size = New-Object Drawing.Size(1150, 20)
 $footer.TextAlign = "MiddleCenter"
