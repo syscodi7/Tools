@@ -1,5 +1,5 @@
 # ============================================================
-#   NovaTech System Toolkit v1.2
+#   Syscodi7 System Toolkit v1.2
 #   Herramienta de administracion avanzada para Windows
 #   Requiere: PowerShell 5.1+ | Ejecutar como Administrador
 # ============================================================
@@ -35,7 +35,7 @@ $C = @{
 # ============================================================
 #   LOG AUTOMATICO
 # ============================================================
-$script:LogPath = "$env:TEMP\NovaTech_Log_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
+$script:LogPath = "$env:TEMP\Syscodi7_Log_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
 $script:LogLines = [System.Collections.ArrayList]::new()
 $script:DownloadHistory = [System.Collections.ArrayList]::new()
 
@@ -61,7 +61,7 @@ function Log($msg, $level = "INFO") {
 }
 
 function Confirm-Action($msg) {
-    $r = [Windows.Forms.MessageBox]::Show($msg, "NovaTech - Confirmar",
+    $r = [Windows.Forms.MessageBox]::Show($msg, "Syscodi7 - Confirmar",
         [Windows.Forms.MessageBoxButtons]::YesNo,
         [Windows.Forms.MessageBoxIcon]::Warning)
     return ($r -eq [Windows.Forms.DialogResult]::Yes)
@@ -112,18 +112,18 @@ function Make-Card($title, $subtitle, $parent, $y, $h = 110) {
     $parent.Controls.Add($p)
     $lt = New-Object Windows.Forms.Label
     $lt.Text = $title
-    $lt.Location = New-Object Drawing.Point(10, 8)
-    $lt.Size = New-Object Drawing.Size(670, 20)
+    $lt.Location = New-Object Drawing.Point(10, 6)
+    $lt.Size = New-Object Drawing.Size(670, 18)
     $lt.ForeColor = $C.Accent2
-    $lt.Font = New-Object Drawing.Font("Segoe UI", 9.5, [Drawing.FontStyle]::Bold)
+    $lt.Font = New-Object Drawing.Font("Segoe UI", 9, [Drawing.FontStyle]::Bold)
     $p.Controls.Add($lt)
     if ($subtitle) {
         $ls = New-Object Windows.Forms.Label
         $ls.Text = $subtitle
-        $ls.Location = New-Object Drawing.Point(10, 30)
-        $ls.Size = New-Object Drawing.Size(670, 16)
+        $ls.Location = New-Object Drawing.Point(10, 24)
+        $ls.Size = New-Object Drawing.Size(670, 14)
         $ls.ForeColor = $C.SubText
-        $ls.Font = New-Object Drawing.Font("Segoe UI", 7.5)
+        $ls.Font = New-Object Drawing.Font("Segoe UI", 7)
         $p.Controls.Add($ls)
     }
     return $p
@@ -144,7 +144,7 @@ function Run-Safe($cmd, $desc) {
 #   FORMULARIO PRINCIPAL
 # ============================================================
 $form = New-Object Windows.Forms.Form
-$form.Text = "NovaTech System Toolkit v1.2"
+$form.Text = "Syscodi7 System Toolkit v1.2"
 $form.Size = New-Object Drawing.Size(1150, 680)
 $form.StartPosition = "CenterScreen"
 $form.BackColor = $C.Bg
@@ -163,7 +163,7 @@ $header.BackColor = $C.Surface
 $form.Controls.Add($header)
 
 $lblT = New-Object Windows.Forms.Label
-$lblT.Text = "NOVATECH"
+$lblT.Text = "Syscodi7"
 $lblT.Font = New-Object Drawing.Font("Segoe UI", 16, [Drawing.FontStyle]::Bold)
 $lblT.ForeColor = $C.Accent
 $lblT.Location = New-Object Drawing.Point(15, 8)
@@ -230,7 +230,7 @@ $btnSaveLog.Font = New-Object Drawing.Font("Segoe UI", 7)
 $btnSaveLog.Add_Click({
     $dlg = New-Object Windows.Forms.SaveFileDialog
     $dlg.Filter = "Log (*.log)|*.log|Texto (*.txt)|*.txt"
-    $dlg.FileName = "NovaTech_Log_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
+    $dlg.FileName = "Syscodi7_Log_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
     if ($dlg.ShowDialog() -eq "OK") {
         $outputBox.Text | Set-Content $dlg.FileName -Encoding UTF8
         Log "Log guardado: $($dlg.FileName)" "OK"
@@ -251,7 +251,7 @@ $outputBox.ForeColor = $C.Accent2
 $outputBox.Font = New-Object Drawing.Font("Consolas", 8.5)
 $outputBox.ReadOnly = $true
 $outputBox.BorderStyle = "None"
-$outputBox.Text = "  NovaTech System Toolkit v1.2`n  Listo. Selecciona una opcion."
+$outputBox.Text = "  Syscodi7 System Toolkit v1.2`n  Listo. Selecciona una opcion."
 $rightP.Controls.Add($outputBox)
 
 # Guardar log automatico al cerrar
@@ -416,7 +416,7 @@ $btnRestorePt = Make-Button "Crear Punto de Restauracion" 210 176 220 34
 $btnRestorePt.Add_Click({
     Log "Creando punto de restauracion..." "INFO"
     try {
-        Checkpoint-Computer -Description "NovaTech Backup $(Get-Date -Format 'dd/MM/yyyy HH:mm')" -RestorePointType MODIFY_SETTINGS
+        Checkpoint-Computer -Description "Syscodi7 Backup $(Get-Date -Format 'dd/MM/yyyy HH:mm')" -RestorePointType MODIFY_SETTINGS
         Log "Punto de restauracion creado." "OK"
     } catch { Log "Error: $_" "ERR" }
 })
@@ -675,7 +675,7 @@ $btnExpReport = Make-Button "Exportar Reporte" 545 320 150 34
 $btnExpReport.Add_Click({
     $dlg = New-Object Windows.Forms.SaveFileDialog
     $dlg.Filter = "Texto (*.txt)|*.txt"
-    $dlg.FileName = "NovaTech_Reporte_$(Get-Date -Format 'yyyyMMdd_HHmmss').txt"
+    $dlg.FileName = "Syscodi7_Reporte_$(Get-Date -Format 'yyyyMMdd_HHmmss').txt"
     if ($dlg.ShowDialog() -eq "OK") {
         $infoBox.Text | Set-Content $dlg.FileName -Encoding UTF8
         Log "Reporte guardado: $($dlg.FileName)" "OK"
@@ -705,7 +705,7 @@ $tabSys.Controls.Add($btnTopMem)
 
 $btnKillProc = Make-Button "Matar Proceso por Nombre" 430 389 240 34 $C.Red
 $btnKillProc.Add_Click({
-    $input = [Microsoft.VisualBasic.Interaction]::InputBox("Nombre del proceso (sin .exe):", "NovaTech", "")
+    $input = [Microsoft.VisualBasic.Interaction]::InputBox("Nombre del proceso (sin .exe):", "Syscodi7", "")
     if ($input) {
         $procs = Get-Process -Name $input -EA SilentlyContinue
         if ($procs) {
@@ -719,24 +719,25 @@ $btnKillProc.Add_Click({
 $tabSys.Controls.Add($btnKillProc)
 
 # ============================================================
-#   TAB 5: YOUTUBE DOWNLOADER - MEJORADO
+#   TAB 5: YOUTUBE DOWNLOADER - CORREGIDO
 # ============================================================
 Make-Section "Descargador de YouTube" 10 8 $tabYT
 
 # ===== CARD 1: Configuracion de Descarga =====
-$cardYT = Make-Card "Configuracion de Descarga" $tabYT 32 150
+# SIN SUBTITULO, titulo mas compacto, altura ajustada
+$cardYT = Make-Card "Configuracion de Descarga" $null $tabYT 28 170
 
-# URL
+# URL - Posicionado justo debajo del titulo compacto
 $lblURL = New-Object Windows.Forms.Label
 $lblURL.Text = "URL del video:"
-$lblURL.Location = New-Object Drawing.Point(10, 35)
+$lblURL.Location = New-Object Drawing.Point(10, 28)
 $lblURL.Size = New-Object Drawing.Size(90, 20)
 $lblURL.ForeColor = $C.Text
 $lblURL.Font = New-Object Drawing.Font("Segoe UI", 8.5)
 $cardYT.Controls.Add($lblURL)
 
 $txtURL = New-Object Windows.Forms.TextBox
-$txtURL.Location = New-Object Drawing.Point(105, 33)
+$txtURL.Location = New-Object Drawing.Point(105, 26)
 $txtURL.Size = New-Object Drawing.Size(570, 24)
 $txtURL.BackColor = $C.Surface
 $txtURL.ForeColor = $C.Text
@@ -747,14 +748,14 @@ $cardYT.Controls.Add($txtURL)
 # Fila 2: Formato + Destino
 $lblFormat = New-Object Windows.Forms.Label
 $lblFormat.Text = "Formato:"
-$lblFormat.Location = New-Object Drawing.Point(10, 65)
+$lblFormat.Location = New-Object Drawing.Point(10, 56)
 $lblFormat.Size = New-Object Drawing.Size(90, 20)
 $lblFormat.ForeColor = $C.Text
 $lblFormat.Font = New-Object Drawing.Font("Segoe UI", 8.5)
 $cardYT.Controls.Add($lblFormat)
 
 $comboFormat = New-Object Windows.Forms.ComboBox
-$comboFormat.Location = New-Object Drawing.Point(105, 63)
+$comboFormat.Location = New-Object Drawing.Point(105, 54)
 $comboFormat.Size = New-Object Drawing.Size(180, 24)
 $comboFormat.BackColor = $C.Surface
 $comboFormat.ForeColor = $C.Text
@@ -772,14 +773,14 @@ $cardYT.Controls.Add($comboFormat)
 
 $lblDest = New-Object Windows.Forms.Label
 $lblDest.Text = "Destino:"
-$lblDest.Location = New-Object Drawing.Point(300, 65)
+$lblDest.Location = New-Object Drawing.Point(300, 56)
 $lblDest.Size = New-Object Drawing.Size(55, 20)
 $lblDest.ForeColor = $C.Text
 $lblDest.Font = New-Object Drawing.Font("Segoe UI", 8.5)
 $cardYT.Controls.Add($lblDest)
 
 $txtDest = New-Object Windows.Forms.TextBox
-$txtDest.Location = New-Object Drawing.Point(355, 63)
+$txtDest.Location = New-Object Drawing.Point(355, 54)
 $txtDest.Size = New-Object Drawing.Size(280, 24)
 $txtDest.BackColor = $C.Surface
 $txtDest.ForeColor = $C.Text
@@ -788,7 +789,7 @@ $txtDest.Font = New-Object Drawing.Font("Segoe UI", 9)
 $txtDest.Text = "$env:USERPROFILE\Downloads"
 $cardYT.Controls.Add($txtDest)
 
-$btnBrowse = Make-Button "..." 645 63 30 24 $C.Card
+$btnBrowse = Make-Button "..." 645 54 30 24 $C.Card
 $btnBrowse.Font = New-Object Drawing.Font("Segoe UI", 8)
 $btnBrowse.Add_Click({
     $dlg = New-Object Windows.Forms.FolderBrowserDialog
@@ -802,14 +803,14 @@ $cardYT.Controls.Add($btnBrowse)
 # Fila 3: Nombre
 $lblFileName = New-Object Windows.Forms.Label
 $lblFileName.Text = "Nombre:"
-$lblFileName.Location = New-Object Drawing.Point(10, 95)
+$lblFileName.Location = New-Object Drawing.Point(10, 84)
 $lblFileName.Size = New-Object Drawing.Size(90, 20)
 $lblFileName.ForeColor = $C.Text
 $lblFileName.Font = New-Object Drawing.Font("Segoe UI", 8.5)
 $cardYT.Controls.Add($lblFileName)
 
 $txtFileName = New-Object Windows.Forms.TextBox
-$txtFileName.Location = New-Object Drawing.Point(105, 93)
+$txtFileName.Location = New-Object Drawing.Point(105, 82)
 $txtFileName.Size = New-Object Drawing.Size(350, 24)
 $txtFileName.BackColor = $C.Surface
 $txtFileName.ForeColor = $C.Text
@@ -819,8 +820,8 @@ $txtFileName.Text = "%(title)s"
 $cardYT.Controls.Add($txtFileName)
 
 $lblHint = New-Object Windows.Forms.Label
-$lblHint.Text = "%(title)s = titulo original | %(uploader)s = canal"
-$lblHint.Location = New-Object Drawing.Point(460, 95)
+$lblHint.Text = "%(title)s = titulo | %(uploader)s = canal"
+$lblHint.Location = New-Object Drawing.Point(460, 84)
 $lblHint.Size = New-Object Drawing.Size(230, 20)
 $lblHint.ForeColor = $C.SubText
 $lblHint.Font = New-Object Drawing.Font("Segoe UI", 7.5)
@@ -829,7 +830,7 @@ $cardYT.Controls.Add($lblHint)
 # Fila 4: Checkboxes
 $chkPlaylist = New-Object Windows.Forms.CheckBox
 $chkPlaylist.Text = "Descargar playlist completa"
-$chkPlaylist.Location = New-Object Drawing.Point(105, 123)
+$chkPlaylist.Location = New-Object Drawing.Point(105, 110)
 $chkPlaylist.Size = New-Object Drawing.Size(220, 22)
 $chkPlaylist.ForeColor = $C.Text
 $chkPlaylist.BackColor = $C.Card
@@ -838,7 +839,7 @@ $cardYT.Controls.Add($chkPlaylist)
 
 $chkSubtitles = New-Object Windows.Forms.CheckBox
 $chkSubtitles.Text = "Incluir subtitulos (es/en)"
-$chkSubtitles.Location = New-Object Drawing.Point(340, 123)
+$chkSubtitles.Location = New-Object Drawing.Point(340, 110)
 $chkSubtitles.Size = New-Object Drawing.Size(180, 22)
 $chkSubtitles.ForeColor = $C.Text
 $chkSubtitles.BackColor = $C.Card
@@ -847,7 +848,7 @@ $cardYT.Controls.Add($chkSubtitles)
 
 $chkEmbedThumb = New-Object Windows.Forms.CheckBox
 $chkEmbedThumb.Text = "Portada en audio"
-$chkEmbedThumb.Location = New-Object Drawing.Point(530, 123)
+$chkEmbedThumb.Location = New-Object Drawing.Point(530, 110)
 $chkEmbedThumb.Size = New-Object Drawing.Size(140, 22)
 $chkEmbedThumb.ForeColor = $C.Text
 $chkEmbedThumb.BackColor = $C.Card
@@ -855,7 +856,7 @@ $chkEmbedThumb.Font = New-Object Drawing.Font("Segoe UI", 8)
 $cardYT.Controls.Add($chkEmbedThumb)
 
 # ===== BOTONES DE ACCION =====
-$btnDownload = Make-Button "DESCARGAR" 10 222 220 38 $C.Green
+$btnDownload = Make-Button "DESCARGAR" 10 205 220 38 $C.Green
 $btnDownload.Font = New-Object Drawing.Font("Segoe UI", 11, [Drawing.FontStyle]::Bold)
 $btnDownload.Add_Click({
     $url = $txtURL.Text.Trim()
@@ -1018,7 +1019,7 @@ $btnDownload.Add_Click({
 })
 $tabYT.Controls.Add($btnDownload)
 
-$btnYTInfo = Make-Button "Ver Info del Video" 240 222 180 38 $C.Card
+$btnYTInfo = Make-Button "Ver Info del Video" 240 205 180 38 $C.Card
 $btnYTInfo.Font = New-Object Drawing.Font("Segoe UI", 9)
 $btnYTInfo.Add_Click({
     $url = $txtURL.Text.Trim()
@@ -1051,7 +1052,7 @@ $btnYTInfo.Add_Click({
 })
 $tabYT.Controls.Add($btnYTInfo)
 
-$btnOpenFolder = Make-Button "Abrir Carpeta" 430 222 130 38 $C.Card
+$btnOpenFolder = Make-Button "Abrir Carpeta" 430 205 130 38 $C.Card
 $btnOpenFolder.Font = New-Object Drawing.Font("Segoe UI", 9)
 $btnOpenFolder.Add_Click({
     $dest = $txtDest.Text.Trim()
@@ -1063,7 +1064,7 @@ $btnOpenFolder.Add_Click({
 })
 $tabYT.Controls.Add($btnOpenFolder)
 
-$btnClearURL = Make-Button "Limpiar" 570 222 100 38 $C.Card
+$btnClearURL = Make-Button "Limpiar" 570 205 100 38 $C.Card
 $btnClearURL.Font = New-Object Drawing.Font("Segoe UI", 9)
 $btnClearURL.Add_Click({
     $txtURL.Clear()
@@ -1076,7 +1077,7 @@ $tabYT.Controls.Add($btnClearURL)
 
 # ===== BARRA DE PROGRESO =====
 $progressBar = New-Object Windows.Forms.ProgressBar
-$progressBar.Location = New-Object Drawing.Point(10, 268)
+$progressBar.Location = New-Object Drawing.Point(10, 250)
 $progressBar.Size = New-Object Drawing.Size(660, 18)
 $progressBar.Style = "Continuous"
 $progressBar.BackColor = $C.DarkCard
@@ -1086,14 +1087,14 @@ $tabYT.Controls.Add($progressBar)
 
 $lblStatus = New-Object Windows.Forms.Label
 $lblStatus.Text = "Listo"
-$lblStatus.Location = New-Object Drawing.Point(10, 290)
+$lblStatus.Location = New-Object Drawing.Point(10, 272)
 $lblStatus.Size = New-Object Drawing.Size(660, 20)
 $lblStatus.ForeColor = $C.SubText
 $lblStatus.Font = New-Object Drawing.Font("Segoe UI", 8.5, [Drawing.FontStyle]::Bold)
 $tabYT.Controls.Add($lblStatus)
 
 # ===== CARD 2: Requisitos =====
-$cardReq = Make-Card "Requisitos" $null $tabYT 318 80
+$cardReq = Make-Card "Requisitos" $null $tabYT 300 80
 $cardReq.Size = New-Object Drawing.Size(690, 80)
 
 $lblReq = New-Object Windows.Forms.Label
@@ -1113,7 +1114,7 @@ $lblReq2.Font = New-Object Drawing.Font("Consolas", 8)
 $cardReq.Controls.Add($lblReq2)
 
 # ===== CARD 3: Historial de Descargas =====
-$cardHistory = Make-Card "Historial de Descargas" $null $tabYT 408 140
+$cardHistory = Make-Card "Historial de Descargas" $null $tabYT 390 140
 $cardHistory.Size = New-Object Drawing.Size(690, 140)
 
 $lstHistory = New-Object Windows.Forms.ListBox
@@ -1160,7 +1161,7 @@ $cardHistory.Controls.Add($btnCopyURL)
 #   FOOTER
 # ============================================================
 $footer = New-Object Windows.Forms.Label
-$footer.Text = "NovaTech System Toolkit v1.2  |  PowerShell + WinForms  |  Ejecutar como Administrador"
+$footer.Text = "Syscodi7 System Toolkit v1.2  |  PowerShell + WinForms  |  Ejecutar como Administrador"
 $footer.Location = New-Object Drawing.Point(0, 622)
 $footer.Size = New-Object Drawing.Size(1150, 20)
 $footer.TextAlign = "MiddleCenter"
