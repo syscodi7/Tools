@@ -1,5 +1,5 @@
 # ============================================================
-#   NovaTech System Toolkit v1.0
+#   Syscodi7 System Toolkit v1.1
 #   Herramienta de administración avanzada para Windows
 #   Requiere: PowerShell 5.1+ | Ejecutar como Administrador
 # ============================================================
@@ -34,7 +34,7 @@ $C = @{
 # ============================================================
 #   LOG AUTOMATICO
 # ============================================================
-$script:LogPath = "$env:TEMP\NovaTech_Log_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
+$script:LogPath = "$env:TEMP\Syscodi7_Log_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
 $script:LogLines = [System.Collections.ArrayList]::new()
 
 # ============================================================
@@ -59,7 +59,7 @@ function Log($msg, $level = "INFO") {
 }
 
 function Confirm-Action($msg) {
-    $r = [Windows.Forms.MessageBox]::Show($msg, "NovaTech - Confirmar",
+    $r = [Windows.Forms.MessageBox]::Show($msg, "Syscodi7 - Confirmar",
         [Windows.Forms.MessageBoxButtons]::YesNo,
         [Windows.Forms.MessageBoxIcon]::Warning)
     return ($r -eq [Windows.Forms.DialogResult]::Yes)
@@ -142,7 +142,7 @@ function Run-Safe($cmd, $desc) {
 #   FORMULARIO PRINCIPAL
 # ============================================================
 $form = New-Object Windows.Forms.Form
-$form.Text = "NovaTech System Toolkit v1.0"
+$form.Text = "Syscodi7 System Toolkit v1.1"
 $form.Size = New-Object Drawing.Size(1150, 680)
 $form.StartPosition = "CenterScreen"
 $form.BackColor = $C.Bg
@@ -161,7 +161,7 @@ $header.BackColor = $C.Surface
 $form.Controls.Add($header)
 
 $lblT = New-Object Windows.Forms.Label
-$lblT.Text = "NOVATECH"
+$lblT.Text = "Syscodi7"
 $lblT.Font = New-Object Drawing.Font("Segoe UI", 16, [Drawing.FontStyle]::Bold)
 $lblT.ForeColor = $C.Accent
 $lblT.Location = New-Object Drawing.Point(15, 8)
@@ -188,7 +188,7 @@ $lblAdm.Size = New-Object Drawing.Size(120, 20)
 $header.Controls.Add($lblAdm)
 
 # ============================================================
-#   TAB CONTROL (7 PESTANAS)
+#   TAB CONTROL (5 PESTANAS)
 # ============================================================
 $tabs = New-Object Windows.Forms.TabControl
 $tabs.Location = New-Object Drawing.Point(4, 56)
@@ -200,11 +200,9 @@ $form.Controls.Add($tabs)
 
 $tabClean   = Make-Tab "Limpieza"
 $tabRepair  = Make-Tab "Reparacion"
-$tabApps    = Make-Tab "Aplicaciones"
-$tabTweaks  = Make-Tab "Tweaks"
 $tabSec     = Make-Tab "Seguridad"
-$tabBackup  = Make-Tab "Backup"
 $tabSys     = Make-Tab "Sistema"
+$tabYT      = Make-Tab "YouTube"
 
 # ============================================================
 #   PANEL DERECHO - CONSOLA
@@ -230,7 +228,7 @@ $btnSaveLog.Font = New-Object Drawing.Font("Segoe UI", 7)
 $btnSaveLog.Add_Click({
     $dlg = New-Object Windows.Forms.SaveFileDialog
     $dlg.Filter = "Log (*.log)|*.log|Texto (*.txt)|*.txt"
-    $dlg.FileName = "NovaTech_Log_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
+    $dlg.FileName = "Syscodi7_Log_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
     if ($dlg.ShowDialog() -eq "OK") {
         $outputBox.Text | Set-Content $dlg.FileName -Encoding UTF8
         Log "Log guardado: $($dlg.FileName)" "OK"
@@ -251,13 +249,14 @@ $outputBox.ForeColor = $C.Accent2
 $outputBox.Font = New-Object Drawing.Font("Consolas", 8.5)
 $outputBox.ReadOnly = $true
 $outputBox.BorderStyle = "None"
-$outputBox.Text = "  NovaTech System Toolkit v1.0`n  Listo. Selecciona una opcion."
+$outputBox.Text = "  Syscodi7 System Toolkit v1.1`n  Listo. Selecciona una opcion."
 $rightP.Controls.Add($outputBox)
 
 # Guardar log automatico al cerrar
 $form.Add_FormClosing({
     try { $script:LogLines | Set-Content $script:LogPath -Encoding UTF8 -EA SilentlyContinue } catch {}
 })
+
 # ============================================================
 #   TAB 1: LIMPIEZA
 # ============================================================
@@ -415,7 +414,7 @@ $btnRestorePt = Make-Button "Crear Punto de Restauracion" 210 176 220 34
 $btnRestorePt.Add_Click({
     Log "Creando punto de restauracion..." "INFO"
     try {
-        Checkpoint-Computer -Description "NovaTech Backup $(Get-Date -Format 'dd/MM/yyyy HH:mm')" -RestorePointType MODIFY_SETTINGS
+        Checkpoint-Computer -Description "Syscodi7 Backup $(Get-Date -Format 'dd/MM/yyyy HH:mm')" -RestorePointType MODIFY_SETTINGS
         Log "Punto de restauracion creado." "OK"
     } catch { Log "Error: $_" "ERR" }
 })
@@ -487,238 +486,8 @@ $btnMASInfo.Add_Click({
 })
 $tabRepair.Controls.Add($btnMASInfo)
 
-# PLACEHOLDER: TAB 3 - APLICACIONES
 # ============================================================
-#   TAB 3: APLICACIONES
-# ============================================================
-$txtAppSearch = New-Object Windows.Forms.TextBox
-$txtAppSearch.Location = New-Object Drawing.Point(5, 5)
-$txtAppSearch.Size = New-Object Drawing.Size(340, 24)
-$txtAppSearch.BackColor = $C.Card
-$txtAppSearch.ForeColor = $C.Text
-$txtAppSearch.BorderStyle = "FixedSingle"
-$txtAppSearch.Font = New-Object Drawing.Font("Segoe UI", 9)
-$txtAppSearch.Text = "Buscar aplicacion..."
-$txtAppSearch.Add_Enter({ if ($txtAppSearch.Text -eq "Buscar aplicacion...") { $txtAppSearch.Text = ""; $txtAppSearch.ForeColor = $C.Text } })
-$txtAppSearch.Add_Leave({ if ([string]::IsNullOrWhiteSpace($txtAppSearch.Text)) { $txtAppSearch.Text = "Buscar aplicacion..."; $txtAppSearch.ForeColor = $C.SubText } })
-$tabApps.Controls.Add($txtAppSearch)
-
-$appScroll = New-Object Windows.Forms.Panel
-$appScroll.Location = New-Object Drawing.Point(0, 32)
-$appScroll.Size = New-Object Drawing.Size(700, 430)
-$appScroll.AutoScroll = $true
-$appScroll.BackColor = $C.Bg
-$tabApps.Controls.Add($appScroll)
-
-$apps = @(
-    @{c="Navegadores";    n="Google Chrome";   id="Google.Chrome"},
-    @{c="Navegadores";    n="Firefox";         id="Mozilla.Firefox"},
-    @{c="Navegadores";    n="Brave";           id="Brave.Brave";                    f=$true},
-    @{c="Navegadores";    n="LibreWolf";       id="LibreWolf.LibreWolf";            f=$true},
-    @{c="Comunicacion";   n="Discord";         id="Discord.Discord"},
-    @{c="Comunicacion";   n="Telegram";        id="Telegram.TelegramDesktop";        f=$true},
-    @{c="Comunicacion";   n="Slack";           id="SlackTechnologies.Slack"},
-    @{c="Comunicacion";   n="Signal";          id="OpenWhisperSystems.Signal";       f=$true},
-    @{c="Comunicacion";   n="Zoom";            id="Zoom.Zoom"},
-    @{c="Desarrollo";     n="VS Code";         id="Microsoft.VisualStudioCode"},
-    @{c="Desarrollo";     n="Git";             id="Git.Git";                         f=$true},
-    @{c="Desarrollo";     n="Python 3";        id="Python.Python.3";                 f=$true},
-    @{c="Desarrollo";     n="Node.js LTS";     id="OpenJS.NodeJS.LTS";              f=$true},
-    @{c="Desarrollo";     n="Java JDK 21";     id="EclipseAdoptium.Temurin.21.JDK"; f=$true},
-    @{c="Herramientas";   n="7-Zip";           id="7zip.7zip";                       f=$true},
-    @{c="Herramientas";   n="VLC";             id="VideoLAN.VLC";                    f=$true},
-    @{c="Herramientas";   n="Notepad++";       id="Notepad++.Notepad++";             f=$true},
-    @{c="Herramientas";   n="Everything";      id="voidtools.Everything";            f=$true},
-    @{c="Herramientas";   n="ShareX";          id="ShareX.ShareX";                   f=$true},
-    @{c="Herramientas";   n="Rufus";           id="Rufus.Rufus";                     f=$true},
-    @{c="Herramientas";   n="WinRAR";          id="RARLab.WinRAR"},
-    @{c="Multimedia";     n="OBS Studio";      id="OBSProject.OBSStudio";            f=$true},
-    @{c="Multimedia";     n="Spotify";         id="Spotify.Spotify"},
-    @{c="Hardware";       n="CrystalDiskInfo"; id="CrystalDewWorld.CrystalDiskInfo"; f=$true},
-    @{c="Hardware";       n="HWiNFO";          id="REALiX.HWiNFO"},
-    @{c="Hardware";       n="GPU-Z";           id="TechPowerUp.GPU-Z"},
-    @{c="Seguridad";      n="Bitwarden";       id="Bitwarden.Bitwarden";             f=$true},
-    @{c="Seguridad";      n="KeePassXC";       id="KeePassXCTeam.KeePassXC";         f=$true},
-    @{c="Oficina";        n="LibreOffice";     id="TheDocumentFoundation.LibreOffice"; f=$true},
-    @{c="Oficina";        n="Microsoft 365";   id="Microsoft.Microsoft365"},
-    @{c="Oficina";        n="OneDrive";        id="Microsoft.OneDrive"},
-    @{c="Oficina";        n="Teams";           id="Microsoft.Teams"}
-)
-
-$script:appCBs = @()
-
-function Build-AppList($filter = "") {
-    $appScroll.Controls.Clear()
-    $script:appCBs = @()
-    $yy = 5; $lastCat = ""; $col = 0
-    foreach ($a in $apps) {
-        if ($filter -and $filter -ne "Buscar aplicacion...") {
-            $esc = [regex]::Escape($filter)
-            if ($a.n -notmatch $esc -and $a.c -notmatch $esc) { continue }
-        }
-        if ($a.c -ne $lastCat) {
-            $col = 0
-            if ($lastCat) { $yy += 8 }
-            $lc = New-Object Windows.Forms.Label
-            $lc.Text = "  $($a.c)"
-            $lc.Location = New-Object Drawing.Point(4, $yy)
-            $lc.Size = New-Object Drawing.Size(680, 18)
-            $lc.ForeColor = $C.Accent
-            $lc.Font = New-Object Drawing.Font("Segoe UI", 8.5, [Drawing.FontStyle]::Bold)
-            $appScroll.Controls.Add($lc)
-            $yy += 20; $lastCat = $a.c
-        }
-        $cb = New-Object Windows.Forms.CheckBox
-        $cb.Text = $a.n
-        $cb.Location = New-Object Drawing.Point((8 + $col * 170), $yy)
-        $cb.Size = New-Object Drawing.Size(165, 22)
-        $cb.ForeColor = $(if ($a.f) { $C.Accent2 } else { $C.Text })
-        $cb.BackColor = $C.Bg
-        $cb.Font = New-Object Drawing.Font("Segoe UI", 8)
-        $cb.Tag = "winget install -e --id $($a.id) --silent"
-        $appScroll.Controls.Add($cb)
-        $script:appCBs += $cb
-        $col++
-        if ($col -ge 4) { $col = 0; $yy += 25 }
-    }
-}
-Build-AppList
-
-$txtAppSearch.Add_TextChanged({ Build-AppList $txtAppSearch.Text })
-
-$pnlAppBot = New-Object Windows.Forms.Panel
-$pnlAppBot.Location = New-Object Drawing.Point(0, 465)
-$pnlAppBot.Size = New-Object Drawing.Size(700, 40)
-$pnlAppBot.BackColor = $C.Surface
-$tabApps.Controls.Add($pnlAppBot)
-
-$lblFoss = New-Object Windows.Forms.Label
-$lblFoss.Text = "  Cyan = FOSS (Software Libre)"
-$lblFoss.ForeColor = $C.Accent2
-$lblFoss.Location = New-Object Drawing.Point(5, 10)
-$lblFoss.Size = New-Object Drawing.Size(200, 20)
-$lblFoss.Font = New-Object Drawing.Font("Segoe UI", 7.5)
-$pnlAppBot.Controls.Add($lblFoss)
-
-$btnListInstalled = Make-Button "Ver Instaladas" 210 4 140 30 $C.Card
-$btnListInstalled.Font = New-Object Drawing.Font("Segoe UI", 7.5)
-$btnListInstalled.Add_Click({
-    Log "--- Apps instaladas (winget) ---" "TITLE"
-    $r = winget list 2>&1
-    foreach ($l in $r) { Log $l "INFO" }
-})
-$pnlAppBot.Controls.Add($btnListInstalled)
-
-$btnUpgradeAll = Make-Button "Actualizar Todo" 360 4 140 30 $C.Green
-$btnUpgradeAll.Font = New-Object Drawing.Font("Segoe UI", 7.5)
-$btnUpgradeAll.Add_Click({
-    Log "Actualizando todas las apps..." "INFO"
-    Start-Process powershell -ArgumentList "-NoProfile -Command `"winget upgrade --all --silent`"" -Verb RunAs
-    Log "Actualizacion lanzada en ventana separada." "OK"
-})
-$pnlAppBot.Controls.Add($btnUpgradeAll)
-
-$btnInstallSel = Make-Button "Instalar Seleccion" 510 4 170 30 $C.Btn
-$btnInstallSel.Font = New-Object Drawing.Font("Segoe UI", 7.5)
-$btnInstallSel.Add_Click({
-    $sel = $script:appCBs | Where-Object { $_.Checked }
-    if ($sel.Count -eq 0) { Log "No seleccionaste ninguna aplicacion." "WARN"; return }
-    foreach ($cb in $sel) {
-        Log "Instalando: $($cb.Text)..." "INFO"
-        try {
-            $r = Invoke-Expression $cb.Tag 2>&1
-            Log "$($cb.Text) - Instalado." "OK"
-        } catch { Log "Error instalando $($cb.Text): $_" "ERR" }
-    }
-})
-$pnlAppBot.Controls.Add($btnInstallSel)
-
-# PLACEHOLDER: TAB 4 - TWEAKS
-# ============================================================
-#   TAB 4: TWEAKS
-# ============================================================
-Make-Section "Optimizaciones del sistema" 10 8 $tabTweaks
-
-$tweaks = @(
-    @{n="Alto rendimiento (energia)"; cmd='powercfg /s 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c'; rev='powercfg /s 381b4222-f694-41f0-9685-ff5bb260df2e'},
-    @{n="Desactivar efectos visuales"; cmd='SystemPropertiesPerformance.exe'; rev=''},
-    @{n="Desactivar notificaciones"; cmd='reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\PushNotifications" /v ToastEnabled /t REG_DWORD /d 0 /f'; rev='reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\PushNotifications" /v ToastEnabled /t REG_DWORD /d 1 /f'},
-    @{n="Desactivar telemetria"; cmd='reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection" /v AllowTelemetry /t REG_DWORD /d 0 /f'; rev='reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection" /v AllowTelemetry /f'},
-    @{n="Desactivar Cortana"; cmd='reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /v AllowCortana /t REG_DWORD /d 0 /f'; rev='reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /v AllowCortana /f'},
-    @{n="Modo juego activado"; cmd='reg add "HKCU\Software\Microsoft\GameBar" /v AllowAutoGameMode /t REG_DWORD /d 1 /f'; rev='reg add "HKCU\Software\Microsoft\GameBar" /v AllowAutoGameMode /t REG_DWORD /d 0 /f'},
-    @{n="Mostrar extensiones de archivo"; cmd='reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v HideFileExt /t REG_DWORD /d 0 /f'; rev='reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v HideFileExt /t REG_DWORD /d 1 /f'},
-    @{n="Mostrar archivos ocultos"; cmd='reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v Hidden /t REG_DWORD /d 1 /f'; rev='reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v Hidden /t REG_DWORD /d 2 /f'},
-    @{n="Desactivar Xbox Game Bar"; cmd='reg add "HKCU\System\GameConfigStore" /v GameDVR_Enabled /t REG_DWORD /d 0 /f'; rev='reg add "HKCU\System\GameConfigStore" /v GameDVR_Enabled /t REG_DWORD /d 1 /f'},
-    @{n="God Mode en Escritorio"; cmd='$gm="$env:USERPROFILE\Desktop\GodMode.{ED7BA470-8E54-465E-825C-99712043E01C}"; New-Item -ItemType Directory -Path $gm -EA SilentlyContinue'; rev='Remove-Item "$env:USERPROFILE\Desktop\GodMode.{ED7BA470-8E54-465E-825C-99712043E01C}" -EA SilentlyContinue'},
-    @{n="Desactivar actualizaciones auto"; cmd='reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" /v NoAutoUpdate /t REG_DWORD /d 1 /f'; rev='reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" /v NoAutoUpdate /f'},
-    @{n="Desactivar Bing en busqueda Start"; cmd='reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Search" /v BingSearchEnabled /t REG_DWORD /d 0 /f'; rev='reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Search" /v BingSearchEnabled /t REG_DWORD /d 1 /f'}
-)
-
-$script:tweakCBs = @()
-$yT = 32; $colT = 0
-foreach ($tw in $tweaks) {
-    $cb = New-Object Windows.Forms.CheckBox
-    $cb.Text = $tw.n
-    $cb.Location = New-Object Drawing.Point((10 + $colT * 340), $yT)
-    $cb.Size = New-Object Drawing.Size(330, 24)
-    $cb.ForeColor = $C.Text
-    $cb.BackColor = $C.Bg
-    $cb.Font = New-Object Drawing.Font("Segoe UI", 8)
-    $cb.Tag = $tw.cmd
-    $cb.AccessibleDescription = $tw.rev
-    $tabTweaks.Controls.Add($cb)
-    $script:tweakCBs += $cb
-    $colT++
-    if ($colT -ge 2) { $colT = 0; $yT += 28 }
-}
-
-$btnApplyT = Make-Button "Aplicar Seleccionados" 10 380 220 36 $C.Green
-$btnApplyT.Add_Click({
-    $sel = $script:tweakCBs | Where-Object { $_.Checked }
-    if ($sel.Count -eq 0) { Log "No seleccionaste ningun tweak." "WARN"; return }
-    if (-not (Confirm-Action "Aplicar $($sel.Count) tweak(s) al sistema?")) { return }
-    foreach ($cb in $sel) {
-        Log "Aplicando: $($cb.Text)..." "INFO"
-        try { Invoke-Expression $cb.Tag 2>&1 | Out-Null; Log "Aplicado." "OK" }
-        catch { Log "Error: $_" "ERR" }
-    }
-    Log "Tweaks aplicados. Puede requerir reinicio." "OK"
-})
-$tabTweaks.Controls.Add($btnApplyT)
-
-$btnRevertT = Make-Button "Revertir Seleccionados" 240 380 220 36 $C.Orange
-$btnRevertT.Add_Click({
-    $sel = $script:tweakCBs | Where-Object { $_.Checked }
-    if ($sel.Count -eq 0) { Log "No seleccionaste ningun tweak." "WARN"; return }
-    foreach ($cb in $sel) {
-        if ($cb.AccessibleDescription) {
-            Log "Revirtiendo: $($cb.Text)..." "INFO"
-            try { Invoke-Expression $cb.AccessibleDescription 2>&1 | Out-Null; Log "Revertido." "OK" }
-            catch { Log "Error al revertir: $_" "ERR" }
-        } else { Log "Sin reverso disponible para: $($cb.Text)" "WARN" }
-    }
-})
-$tabTweaks.Controls.Add($btnRevertT)
-
-$btnCheckTweaks = Make-Button "Ver Estado Actual" 470 380 200 36 $C.Card
-$btnCheckTweaks.Font = New-Object Drawing.Font("Segoe UI", 8)
-$btnCheckTweaks.Add_Click({
-    Log "--- Estado de tweaks ---" "TITLE"
-    try {
-        $tel = (Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection" -EA SilentlyContinue).AllowTelemetry
-        Log "Telemetria: $(if($tel -eq 0){'DESACTIVADA'}else{'ACTIVA (nivel $tel)'})" $(if($tel -eq 0){'OK'}else{'WARN'})
-        $cortana = (Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search" -EA SilentlyContinue).AllowCortana
-        Log "Cortana: $(if($cortana -eq 0){'DESACTIVADA'}else{'ACTIVA'})" $(if($cortana -eq 0){'OK'}else{'WARN'})
-        $ext = (Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -EA SilentlyContinue).HideFileExt
-        Log "Extensiones archivo: $(if($ext -eq 0){'VISIBLES'}else{'OCULTAS'})" $(if($ext -eq 0){'OK'}else{'WARN'})
-        $plan = (powercfg /getactivescheme) -replace '.*:\s+(.+)\s*\(.*','$1'
-        Log "Plan energia: $plan" "INFO"
-    } catch { Log "Error leyendo estado: $_" "ERR" }
-})
-$tabTweaks.Controls.Add($btnCheckTweaks)
-# PLACEHOLDER: TAB 5 - SEGURIDAD
-# ============================================================
-#   TAB 5: SEGURIDAD
+#   TAB 3: SEGURIDAD
 # ============================================================
 Make-Section "Windows Defender" 10 8 $tabSec
 
@@ -828,104 +597,8 @@ $btnUAC = Make-Button "Configurar UAC" 430 248 170 34
 $btnUAC.Add_Click({ Start-Process UserAccountControlSettings.exe })
 $tabSec.Controls.Add($btnUAC)
 
-# PLACEHOLDER: TAB 6 - BACKUP
 # ============================================================
-#   TAB 6: BACKUP
-# ============================================================
-Make-Section "Backup de archivos personales" 10 8 $tabBackup
-
-$lblDest = New-Object Windows.Forms.Label
-$lblDest.Text = "Destino: $env:USERPROFILE\Desktop"
-$lblDest.Location = New-Object Drawing.Point(10, 32)
-$lblDest.Size = New-Object Drawing.Size(480, 20)
-$lblDest.ForeColor = $C.SubText
-$lblDest.Font = New-Object Drawing.Font("Consolas", 8)
-$tabBackup.Controls.Add($lblDest)
-
-$btnDest = Make-Button "Cambiar Destino" 500 30 170 28 $C.Card
-$btnDest.Font = New-Object Drawing.Font("Segoe UI", 8)
-$btnDest.Add_Click({
-    $dlg = New-Object Windows.Forms.FolderBrowserDialog
-    $dlg.Description = "Selecciona carpeta de destino"
-    if ($dlg.ShowDialog() -eq "OK") { $lblDest.Text = "Destino: $($dlg.SelectedPath)" }
-})
-$tabBackup.Controls.Add($btnDest)
-
-$bkFolders = @(
-    @{n="Documentos";  p="$env:USERPROFILE\Documents";  c=$true},
-    @{n="Escritorio";  p="$env:USERPROFILE\Desktop";    c=$true},
-    @{n="Descargas";   p="$env:USERPROFILE\Downloads";  c=$false},
-    @{n="Imagenes";    p="$env:USERPROFILE\Pictures";   c=$false},
-    @{n="Videos";      p="$env:USERPROFILE\Videos";     c=$false},
-    @{n="Musica";      p="$env:USERPROFILE\Music";      c=$false}
-)
-
-$script:bkCBs = @(); $xF = 10; $yF = 58
-foreach ($bf in $bkFolders) {
-    $cb = New-Object Windows.Forms.CheckBox; $cb.Text = $bf.n; $cb.Checked = $bf.c
-    $cb.Location = New-Object Drawing.Point($xF, $yF); $cb.Size = New-Object Drawing.Size(150, 22)
-    $cb.ForeColor = $C.Text; $cb.BackColor = $C.Bg; $cb.Tag = $bf.p
-    $tabBackup.Controls.Add($cb)
-    $script:bkCBs += $cb; $xF += 155; if ($xF -gt 650) { $xF = 10; $yF += 26 }
-}
-
-$btnBackup = Make-Button "CREAR BACKUP ZIP" 10 115 220 36 $C.Green
-$btnBackup.Add_Click({
-    $dest = ($lblDest.Text -replace "^Destino: ","").Trim()
-    $sel = $script:bkCBs | Where-Object { $_.Checked }
-    if ($sel.Count -eq 0) { Log "Selecciona al menos una carpeta." "WARN"; return }
-    $zipName = "NovaTech_Backup_$(Get-Date -Format 'yyyyMMdd_HHmmss').zip"
-    $zipPath = Join-Path $dest $zipName
-    Log "Creando backup: $zipPath" "INFO"
-    $tmp = "$env:TEMP\novatech_bk_tmp"
-    Remove-Item $tmp -Recurse -Force -EA SilentlyContinue
-    New-Item $tmp -ItemType Directory | Out-Null
-    foreach ($cb in $sel) {
-        if (Test-Path $cb.Tag) {
-            $fn = Split-Path $cb.Tag -Leaf
-            Copy-Item $cb.Tag "$tmp\$fn" -Recurse -Force -EA SilentlyContinue
-            Log "Copiado: $($cb.Tag)" "INFO"
-        }
-    }
-    [System.IO.Compression.ZipFile]::CreateFromDirectory($tmp, $zipPath)
-    Remove-Item $tmp -Recurse -Force -EA SilentlyContinue
-    Log "Backup creado: $zipPath" "OK"
-})
-$tabBackup.Controls.Add($btnBackup)
-
-Make-Section "Backup de drivers y registro" 10 170 $tabBackup
-
-$btnExpDrivers = Make-Button "Exportar Drivers" 10 194 200 34
-$btnExpDrivers.Add_Click({
-    $dlg = New-Object Windows.Forms.FolderBrowserDialog
-    $dlg.Description = "Carpeta destino para drivers"
-    if ($dlg.ShowDialog() -eq "OK") {
-        Log "Exportando drivers a: $($dlg.SelectedPath)" "INFO"
-        Start-Process powershell -ArgumentList "-NoProfile -Command `"pnputil /export-driver * '$($dlg.SelectedPath)'`"" -Verb RunAs -Wait
-        Log "Drivers exportados." "OK"
-    }
-})
-$tabBackup.Controls.Add($btnExpDrivers)
-
-$btnExpReg = Make-Button "Exportar Registro (HKCU)" 220 194 220 34
-$btnExpReg.Add_Click({
-    $dlg = New-Object Windows.Forms.SaveFileDialog
-    $dlg.Filter = "Registry (*.reg)|*.reg"
-    $dlg.FileName = "HKCU_Backup_$(Get-Date -Format 'yyyyMMdd').reg"
-    if ($dlg.ShowDialog() -eq "OK") {
-        Run-Safe "reg export HKCU `"$($dlg.FileName)`" /y" "Exportar Registro"
-        Log "Registro exportado: $($dlg.FileName)" "OK"
-    }
-})
-$tabBackup.Controls.Add($btnExpReg)
-
-$btnWinBk = Make-Button "Copia de Seguridad Windows" 450 194 220 34
-$btnWinBk.Add_Click({ Start-Process "control /name Microsoft.BackupAndRestore" })
-$tabBackup.Controls.Add($btnWinBk)
-
-# PLACEHOLDER: TAB 7 - SISTEMA
-# ============================================================
-#   TAB 7: SISTEMA
+#   TAB 4: SISTEMA
 # ============================================================
 $infoBox = New-Object Windows.Forms.RichTextBox
 $infoBox.Location = New-Object Drawing.Point(5, 5)
@@ -1000,7 +673,7 @@ $btnExpReport = Make-Button "Exportar Reporte" 545 320 150 34
 $btnExpReport.Add_Click({
     $dlg = New-Object Windows.Forms.SaveFileDialog
     $dlg.Filter = "Texto (*.txt)|*.txt"
-    $dlg.FileName = "NovaTech_Reporte_$(Get-Date -Format 'yyyyMMdd_HHmmss').txt"
+    $dlg.FileName = "Syscodi7_Reporte_$(Get-Date -Format 'yyyyMMdd_HHmmss').txt"
     if ($dlg.ShowDialog() -eq "OK") {
         $infoBox.Text | Set-Content $dlg.FileName -Encoding UTF8
         Log "Reporte guardado: $($dlg.FileName)" "OK"
@@ -1030,11 +703,11 @@ $tabSys.Controls.Add($btnTopMem)
 
 $btnKillProc = Make-Button "Matar Proceso por Nombre" 430 389 240 34 $C.Red
 $btnKillProc.Add_Click({
-    $input = [Microsoft.VisualBasic.Interaction]::InputBox("Nombre del proceso (sin .exe):", "NovaTech", "")
+    $input = [Microsoft.VisualBasic.Interaction]::InputBox("Nombre del proceso (sin .exe):", "Syscodi7", "")
     if ($input) {
         $procs = Get-Process -Name $input -EA SilentlyContinue
         if ($procs) {
-            if (Confirm-Action "Matar $($procs.Count) proceso(s) '$input'?") {
+            if (Confirm-Action "Matar $($procs.Count) proceso(s) '$input'??") {
                 $procs | Stop-Process -Force -EA SilentlyContinue
                 Log "Proceso(s) '$input' terminados." "OK"
             }
@@ -1044,10 +717,354 @@ $btnKillProc.Add_Click({
 $tabSys.Controls.Add($btnKillProc)
 
 # ============================================================
+#   TAB 5: YOUTUBE DOWNLOADER
+# ============================================================
+Make-Section "Descargador de YouTube" 10 8 $tabYT
+
+# Card: URL y Formato
+$cardYT = Make-Card "Configuracion de Descarga" "Requiere yt-dlp y ffmpeg instalados" $tabYT 32 160
+
+$lblURL = New-Object Windows.Forms.Label
+$lblURL.Text = "URL del video:"
+$lblURL.Location = New-Object Drawing.Point(10, 35)
+$lblURL.Size = New-Object Drawing.Size(100, 20)
+$lblURL.ForeColor = $C.Text
+$lblURL.Font = New-Object Drawing.Font("Segoe UI", 8.5)
+$cardYT.Controls.Add($lblURL)
+
+$txtURL = New-Object Windows.Forms.TextBox
+$txtURL.Location = New-Object Drawing.Point(115, 33)
+$txtURL.Size = New-Object Drawing.Size(560, 24)
+$txtURL.BackColor = $C.Surface
+$txtURL.ForeColor = $C.Text
+$txtURL.BorderStyle = "FixedSingle"
+$txtURL.Font = New-Object Drawing.Font("Segoe UI", 9)
+$cardYT.Controls.Add($txtURL)
+
+$lblFormat = New-Object Windows.Forms.Label
+$lblFormat.Text = "Formato:"
+$lblFormat.Location = New-Object Drawing.Point(10, 65)
+$lblFormat.Size = New-Object Drawing.Size(100, 20)
+$lblFormat.ForeColor = $C.Text
+$lblFormat.Font = New-Object Drawing.Font("Segoe UI", 8.5)
+$cardYT.Controls.Add($lblFormat)
+
+$comboFormat = New-Object Windows.Forms.ComboBox
+$comboFormat.Location = New-Object Drawing.Point(115, 63)
+$comboFormat.Size = New-Object Drawing.Size(200, 24)
+$comboFormat.BackColor = $C.Surface
+$comboFormat.ForeColor = $C.Text
+$comboFormat.FlatStyle = "Flat"
+$comboFormat.Font = New-Object Drawing.Font("Segoe UI", 9)
+$comboFormat.DropDownStyle = "DropDownList"
+[void]$comboFormat.Items.Add("Video MP4 (HD)")
+[void]$comboFormat.Items.Add("Video WEBM")
+[void]$comboFormat.Items.Add("Audio MP3 (192kbps)")
+[void]$comboFormat.Items.Add("Audio MP3 (320kbps)")
+[void]$comboFormat.Items.Add("Audio M4A")
+[void]$comboFormat.Items.Add("Audio WAV")
+$comboFormat.SelectedIndex = 0
+$cardYT.Controls.Add($comboFormat)
+
+$lblDest = New-Object Windows.Forms.Label
+$lblDest.Text = "Destino:"
+$lblDest.Location = New-Object Drawing.Point(330, 65)
+$lblDest.Size = New-Object Drawing.Size(60, 20)
+$lblDest.ForeColor = $C.Text
+$lblDest.Font = New-Object Drawing.Font("Segoe UI", 8.5)
+$cardYT.Controls.Add($lblDest)
+
+$txtDest = New-Object Windows.Forms.TextBox
+$txtDest.Location = New-Object Drawing.Point(390, 63)
+$txtDest.Size = New-Object Drawing.Size(200, 24)
+$txtDest.BackColor = $C.Surface
+$txtDest.ForeColor = $C.Text
+$txtDest.BorderStyle = "FixedSingle"
+$txtDest.Font = New-Object Drawing.Font("Segoe UI", 9)
+$txtDest.Text = "$env:USERPROFILE\Downloads"
+$cardYT.Controls.Add($txtDest)
+
+$btnBrowse = Make-Button "..." 600 63 30 24 $C.Card
+$btnBrowse.Font = New-Object Drawing.Font("Segoe UI", 8)
+$btnBrowse.Add_Click({
+    $dlg = New-Object Windows.Forms.FolderBrowserDialog
+    $dlg.Description = "Selecciona carpeta de descargas"
+    if ($dlg.ShowDialog() -eq "OK") {
+        $txtDest.Text = $dlg.SelectedPath
+    }
+})
+$cardYT.Controls.Add($btnBrowse)
+
+$lblFileName = New-Object Windows.Forms.Label
+$lblFileName.Text = "Nombre:"
+$lblFileName.Location = New-Object Drawing.Point(10, 95)
+$lblFileName.Size = New-Object Drawing.Size(100, 20)
+$lblFileName.ForeColor = $C.Text
+$lblFileName.Font = New-Object Drawing.Font("Segoe UI", 8.5)
+$cardYT.Controls.Add($lblFileName)
+
+$txtFileName = New-Object Windows.Forms.TextBox
+$txtFileName.Location = New-Object Drawing.Point(115, 93)
+$txtFileName.Size = New-Object Drawing.Size(350, 24)
+$txtFileName.BackColor = $C.Surface
+$txtFileName.ForeColor = $C.Text
+$txtFileName.BorderStyle = "FixedSingle"
+$txtFileName.Font = New-Object Drawing.Font("Segoe UI", 9)
+$txtFileName.Text = "%(title)s"
+$cardYT.Controls.Add($txtFileName)
+
+$lblHint = New-Object Windows.Forms.Label
+$lblHint.Text = "%(title)s = titulo original"
+$lblHint.Location = New-Object Drawing.Point(470, 95)
+$lblHint.Size = New-Object Drawing.Size(200, 20)
+$lblHint.ForeColor = $C.SubText
+$lblHint.Font = New-Object Drawing.Font("Segoe UI", 7.5)
+$cardYT.Controls.Add($lblHint)
+
+$chkPlaylist = New-Object Windows.Forms.CheckBox
+$chkPlaylist.Text = "Descargar playlist completa"
+$chkPlaylist.Location = New-Object Drawing.Point(115, 125)
+$chkPlaylist.Size = New-Object Drawing.Size(220, 22)
+$chkPlaylist.ForeColor = $C.Text
+$chkPlaylist.BackColor = $C.Card
+$chkPlaylist.Font = New-Object Drawing.Font("Segoe UI", 8)
+$cardYT.Controls.Add($chkPlaylist)
+
+$chkSubtitles = New-Object Windows.Forms.CheckBox
+$chkSubtitles.Text = "Incluir subtitulos"
+$chkSubtitles.Location = New-Object Drawing.Point(340, 125)
+$chkSubtitles.Size = New-Object Drawing.Size(150, 22)
+$chkSubtitles.ForeColor = $C.Text
+$chkSubtitles.BackColor = $C.Card
+$chkSubtitles.Font = New-Object Drawing.Font("Segoe UI", 8)
+$cardYT.Controls.Add($chkSubtitles)
+
+# Boton Descargar
+$btnDownload = Make-Button "DESCARGAR" 10 200 300 40 $C.Green
+$btnDownload.Font = New-Object Drawing.Font("Segoe UI", 11, [Drawing.FontStyle]::Bold)
+$btnDownload.Add_Click({
+    $url = $txtURL.Text.Trim()
+    if (-not $url) {
+        Log "Ingresa una URL de YouTube." "WARN"
+        return
+    }
+    if ($url -notmatch "youtube\.com|youtu\.be") {
+        Log "La URL no parece ser de YouTube." "WARN"
+        return
+    }
+
+    $dest = $txtDest.Text.Trim()
+    if (-not (Test-Path $dest)) {
+        try { New-Item -ItemType Directory -Path $dest -Force | Out-Null }
+        catch { Log "No se pudo crear la carpeta destino." "ERR"; return }
+    }
+
+    $formato = $comboFormat.SelectedItem
+    $fileName = $txtFileName.Text.Trim()
+    if (-not $fileName) { $fileName = "%(title)s" }
+
+    # Construir opciones segun formato
+    $ydlArgs = @()
+    $ydlArgs += "-o `"$dest\$fileName.%(ext)s`""
+
+    switch ($formato) {
+        "Video MP4 (HD)" {
+            $ydlArgs += "-f `"bestvideo[ext=mp4][height<=1080]+bestaudio[ext=m4a]/best[ext=mp4]/best`""
+            $ydlArgs += "--merge-output-format mp4"
+        }
+        "Video WEBM" {
+            $ydlArgs += "-f `"bestvideo[ext=webm]+bestaudio[ext=webm]/best[ext=webm]/best`""
+        }
+        "Audio MP3 (192kbps)" {
+            $ydlArgs += "-f bestaudio/best"
+            $ydlArgs += "--extract-audio"
+            $ydlArgs += "--audio-format mp3"
+            $ydlArgs += "--audio-quality 192K"
+        }
+        "Audio MP3 (320kbps)" {
+            $ydlArgs += "-f bestaudio/best"
+            $ydlArgs += "--extract-audio"
+            $ydlArgs += "--audio-format mp3"
+            $ydlArgs += "--audio-quality 320K"
+        }
+        "Audio M4A" {
+            $ydlArgs += "-f bestaudio[ext=m4a]/bestaudio/best"
+        }
+        "Audio WAV" {
+            $ydlArgs += "-f bestaudio/best"
+            $ydlArgs += "--extract-audio"
+            $ydlArgs += "--audio-format wav"
+        }
+    }
+
+    if ($chkPlaylist.Checked) {
+        $ydlArgs += "--yes-playlist"
+    } else {
+        $ydlArgs += "--no-playlist"
+    }
+
+    if ($chkSubtitles.Checked) {
+        $ydlArgs += "--write-subs"
+        $ydlArgs += "--sub-langs es,en"
+    }
+
+    $ydlArgs += "--no-warnings"
+    $ydlArgs += "--progress"
+
+    $cmd = "yt-dlp $([string]::Join(' ', $ydlArgs)) `"$url`""
+
+    Log "--- Descarga YouTube ---" "TITLE"
+    Log "URL: $url" "INFO"
+    Log "Formato: $formato" "INFO"
+    Log "Destino: $dest" "INFO"
+    Log "Ejecutando yt-dlp..." "INFO"
+
+    try {
+        $psi = New-Object System.Diagnostics.ProcessStartInfo
+        $psi.FileName = "yt-dlp"
+        $psi.Arguments = ([string]::Join(' ', $ydlArgs)) + " `"$url`""
+        $psi.RedirectStandardOutput = $true
+        $psi.RedirectStandardError = $true
+        $psi.UseShellExecute = $false
+        $psi.CreateNoWindow = $true
+
+        $proc = [System.Diagnostics.Process]::Start($psi)
+
+        # Leer salida en tiempo real
+        while (-not $proc.StandardOutput.EndOfStream) {
+            $line = $proc.StandardOutput.ReadLine()
+            if ($line -match "\[download\]") {
+                Log $line "INFO"
+            }
+        }
+
+        $proc.WaitForExit()
+
+        if ($proc.ExitCode -eq 0) {
+            Log "Descarga completada exitosamente." "OK"
+        } else {
+            $err = $proc.StandardError.ReadToEnd()
+            if ($err) { Log $err "ERR" }
+        }
+    } catch {
+        if ($_ -match "no se reconoce como un comando") {
+            Log "yt-dlp no esta instalado. Instalalo con: pip install yt-dlp" "ERR"
+            Log "O descargalo desde: https://github.com/yt-dlp/yt-dlp/releases" "INFO"
+        } else {
+            Log "Error: $_" "ERR"
+        }
+    }
+})
+$tabYT.Controls.Add($btnDownload)
+
+# Boton Info
+$btnYTInfo = Make-Button "Ver Info del Video" 320 200 200 40 $C.Card
+$btnYTInfo.Add_Click({
+    $url = $txtURL.Text.Trim()
+    if (-not $url) { Log "Ingresa una URL primero." "WARN"; return }
+
+    Log "--- Informacion del video ---" "TITLE"
+    try {
+        $info = yt-dlp --dump-json --no-warnings $url 2>$null | ConvertFrom-Json
+        Log "Titulo: $($info.title)" "INFO"
+        Log "Canal: $($info.uploader)" "INFO"
+        Log "Duracion: $([math]::Floor($info.duration / 60))m $($info.duration % 60)s" "INFO"
+        Log "Vistas: $($info.view_count)" "INFO"
+        Log "Mejor calidad video: $($info.format | Where-Object { $_.vcodec -ne 'none' } | Select-Object -First 1 -ExpandProperty format)" "INFO"
+        Log "Mejor calidad audio: $($info.format | Where-Object { $_.acodec -ne 'none' -and $_.vcodec -eq 'none' } | Select-Object -First 1 -ExpandProperty format)" "INFO"
+    } catch {
+        Log "Error obteniendo info. Verifica la URL y que yt-dlp este instalado." "ERR"
+    }
+})
+$tabYT.Controls.Add($btnYTInfo)
+
+# Boton Abrir carpeta
+$btnOpenFolder = Make-Button "Abrir Carpeta" 530 200 150 40 $C.Card
+$btnOpenFolder.Add_Click({
+    $dest = $txtDest.Text.Trim()
+    if (Test-Path $dest) {
+        Start-Process explorer $dest
+    } else {
+        Log "La carpeta no existe." "WARN"
+    }
+})
+$tabYT.Controls.Add($btnOpenFolder)
+
+# Card: Requisitos
+$cardReq = Make-Card "Requisitos" $null $tabYT 250 100
+$cardReq.Size = New-Object Drawing.Size(690, 100)
+
+$lblReq = New-Object Windows.Forms.Label
+$lblReq.Text = "Requisitos:`n`n1. Python instalado (python.org)`n2. yt-dlp:  pip install yt-dlp`n3. FFmpeg:  winget install Gyan.FFmpeg  (o desde ffmpeg.org)"
+$lblReq.Location = New-Object Drawing.Point(10, 30)
+$lblReq.Size = New-Object Drawing.Size(670, 60)
+$lblReq.ForeColor = $C.SubText
+$lblReq.Font = New-Object Drawing.Font("Consolas", 8.5)
+$cardReq.Controls.Add($lblReq)
+
+# ============================================================
+#   CARD: INSTALADOR DE APLICACIONES (Google Chrome + PDFCreator)
+# ============================================================
+$cardApps = Make-Card "Instalador Rapido" "Google Chrome y PDFCreator" $tabYT 360 140
+$cardApps.Size = New-Object Drawing.Size(690, 140)
+
+$lblChrome = New-Object Windows.Forms.Label
+$lblChrome.Text = "Google Chrome - Navegador web rapido y seguro"
+$lblChrome.Location = New-Object Drawing.Point(10, 30)
+$lblChrome.Size = New-Object Drawing.Size(450, 20)
+$lblChrome.ForeColor = $C.Text
+$lblChrome.Font = New-Object Drawing.Font("Segoe UI", 9)
+$cardApps.Controls.Add($lblChrome)
+
+$btnInstallChrome = Make-Button "Instalar Chrome" 470 28 200 26 $C.Green
+$btnInstallChrome.Font = New-Object Drawing.Font("Segoe UI", 8)
+$btnInstallChrome.Add_Click({
+    Log "Instalando Google Chrome via winget..." "INFO"
+    try {
+        $r = winget install -e --id Google.Chrome --silent --accept-package-agreements --accept-source-agreements 2>&1
+        Log "Google Chrome instalado correctamente." "OK"
+    } catch {
+        Log "Error instalando Chrome: $_" "ERR"
+        Log "Intenta descargarlo manualmente desde: https://www.google.com/chrome/" "INFO"
+    }
+})
+$cardApps.Controls.Add($btnInstallChrome)
+
+$lblPDF = New-Object Windows.Forms.Label
+$lblPDF.Text = "PDFCreator - Crea archivos PDF desde cualquier aplicacion"
+$lblPDF.Location = New-Object Drawing.Point(10, 65)
+$lblPDF.Size = New-Object Drawing.Size(450, 20)
+$lblPDF.ForeColor = $C.Text
+$lblPDF.Font = New-Object Drawing.Font("Segoe UI", 9)
+$cardApps.Controls.Add($lblPDF)
+
+$btnInstallPDF = Make-Button "Instalar PDFCreator" 470 63 200 26 $C.Green
+$btnInstallPDF.Font = New-Object Drawing.Font("Segoe UI", 8)
+$btnInstallPDF.Add_Click({
+    Log "Instalando PDFCreator via winget..." "INFO"
+    try {
+        $r = winget install -e --id pdfforge.PDFCreator --silent --accept-package-agreements --accept-source-agreements 2>&1
+        Log "PDFCreator instalado correctamente." "OK"
+    } catch {
+        Log "Error instalando PDFCreator: $_" "ERR"
+        Log "Descarga manual: https://www.pdfforge.org/pdfcreator" "INFO"
+    }
+})
+$cardApps.Controls.Add($btnInstallPDF)
+
+$lblWeb = New-Object Windows.Forms.Label
+$lblWeb.Text = "Sitios oficiales:  chrome.google.com  |  pdfforge.org/pdfcreator"
+$lblWeb.Location = New-Object Drawing.Point(10, 100)
+$lblWeb.Size = New-Object Drawing.Size(660, 20)
+$lblWeb.ForeColor = $C.SubText
+$lblWeb.Font = New-Object Drawing.Font("Segoe UI", 7.5)
+$cardApps.Controls.Add($lblWeb)
+
+# ============================================================
 #   FOOTER
 # ============================================================
 $footer = New-Object Windows.Forms.Label
-$footer.Text = "NovaTech System Toolkit v1.0  |  PowerShell + WinForms  |  Ejecutar como Administrador"
+$footer.Text = "Syscodi7 System Toolkit v1.1  |  PowerShell + WinForms  |  Ejecutar como Administrador"
 $footer.Location = New-Object Drawing.Point(0, 622)
 $footer.Size = New-Object Drawing.Size(1150, 20)
 $footer.TextAlign = "MiddleCenter"
