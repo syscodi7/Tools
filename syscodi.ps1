@@ -1,6 +1,6 @@
 # ============================================================
-#   Syscodi7 System Toolkit v1.1
-#   Herramienta de administración avanzada para Windows
+#   NovaTech System Toolkit v1.2
+#   Herramienta de administracion avanzada para Windows
 #   Requiere: PowerShell 5.1+ | Ejecutar como Administrador
 # ============================================================
 
@@ -29,13 +29,15 @@ $C = @{
     Yellow    = [Drawing.Color]::FromArgb(255, 210, 60)
     Orange    = [Drawing.Color]::FromArgb(255, 160, 40)
     Purple    = [Drawing.Color]::FromArgb(160, 100, 255)
+    DarkCard  = [Drawing.Color]::FromArgb(20, 28, 50)
 }
 
 # ============================================================
 #   LOG AUTOMATICO
 # ============================================================
-$script:LogPath = "$env:TEMP\Syscodi7_Log_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
+$script:LogPath = "$env:TEMP\NovaTech_Log_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
 $script:LogLines = [System.Collections.ArrayList]::new()
+$script:DownloadHistory = [System.Collections.ArrayList]::new()
 
 # ============================================================
 #   FUNCIONES HELPER
@@ -59,7 +61,7 @@ function Log($msg, $level = "INFO") {
 }
 
 function Confirm-Action($msg) {
-    $r = [Windows.Forms.MessageBox]::Show($msg, "Syscodi7 - Confirmar",
+    $r = [Windows.Forms.MessageBox]::Show($msg, "NovaTech - Confirmar",
         [Windows.Forms.MessageBoxButtons]::YesNo,
         [Windows.Forms.MessageBoxIcon]::Warning)
     return ($r -eq [Windows.Forms.DialogResult]::Yes)
@@ -142,7 +144,7 @@ function Run-Safe($cmd, $desc) {
 #   FORMULARIO PRINCIPAL
 # ============================================================
 $form = New-Object Windows.Forms.Form
-$form.Text = "Syscodi7 System Toolkit v1.1"
+$form.Text = "NovaTech System Toolkit v1.2"
 $form.Size = New-Object Drawing.Size(1150, 680)
 $form.StartPosition = "CenterScreen"
 $form.BackColor = $C.Bg
@@ -161,7 +163,7 @@ $header.BackColor = $C.Surface
 $form.Controls.Add($header)
 
 $lblT = New-Object Windows.Forms.Label
-$lblT.Text = "Syscodi7"
+$lblT.Text = "NOVATECH"
 $lblT.Font = New-Object Drawing.Font("Segoe UI", 16, [Drawing.FontStyle]::Bold)
 $lblT.ForeColor = $C.Accent
 $lblT.Location = New-Object Drawing.Point(15, 8)
@@ -228,7 +230,7 @@ $btnSaveLog.Font = New-Object Drawing.Font("Segoe UI", 7)
 $btnSaveLog.Add_Click({
     $dlg = New-Object Windows.Forms.SaveFileDialog
     $dlg.Filter = "Log (*.log)|*.log|Texto (*.txt)|*.txt"
-    $dlg.FileName = "Syscodi7_Log_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
+    $dlg.FileName = "NovaTech_Log_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
     if ($dlg.ShowDialog() -eq "OK") {
         $outputBox.Text | Set-Content $dlg.FileName -Encoding UTF8
         Log "Log guardado: $($dlg.FileName)" "OK"
@@ -249,7 +251,7 @@ $outputBox.ForeColor = $C.Accent2
 $outputBox.Font = New-Object Drawing.Font("Consolas", 8.5)
 $outputBox.ReadOnly = $true
 $outputBox.BorderStyle = "None"
-$outputBox.Text = "  Syscodi7 System Toolkit v1.1`n  Listo. Selecciona una opcion."
+$outputBox.Text = "  NovaTech System Toolkit v1.2`n  Listo. Selecciona una opcion."
 $rightP.Controls.Add($outputBox)
 
 # Guardar log automatico al cerrar
@@ -414,7 +416,7 @@ $btnRestorePt = Make-Button "Crear Punto de Restauracion" 210 176 220 34
 $btnRestorePt.Add_Click({
     Log "Creando punto de restauracion..." "INFO"
     try {
-        Checkpoint-Computer -Description "Syscodi7 Backup $(Get-Date -Format 'dd/MM/yyyy HH:mm')" -RestorePointType MODIFY_SETTINGS
+        Checkpoint-Computer -Description "NovaTech Backup $(Get-Date -Format 'dd/MM/yyyy HH:mm')" -RestorePointType MODIFY_SETTINGS
         Log "Punto de restauracion creado." "OK"
     } catch { Log "Error: $_" "ERR" }
 })
@@ -673,7 +675,7 @@ $btnExpReport = Make-Button "Exportar Reporte" 545 320 150 34
 $btnExpReport.Add_Click({
     $dlg = New-Object Windows.Forms.SaveFileDialog
     $dlg.Filter = "Texto (*.txt)|*.txt"
-    $dlg.FileName = "Syscodi7_Reporte_$(Get-Date -Format 'yyyyMMdd_HHmmss').txt"
+    $dlg.FileName = "NovaTech_Reporte_$(Get-Date -Format 'yyyyMMdd_HHmmss').txt"
     if ($dlg.ShowDialog() -eq "OK") {
         $infoBox.Text | Set-Content $dlg.FileName -Encoding UTF8
         Log "Reporte guardado: $($dlg.FileName)" "OK"
@@ -703,7 +705,7 @@ $tabSys.Controls.Add($btnTopMem)
 
 $btnKillProc = Make-Button "Matar Proceso por Nombre" 430 389 240 34 $C.Red
 $btnKillProc.Add_Click({
-    $input = [Microsoft.VisualBasic.Interaction]::InputBox("Nombre del proceso (sin .exe):", "Syscodi7", "")
+    $input = [Microsoft.VisualBasic.Interaction]::InputBox("Nombre del proceso (sin .exe):", "NovaTech", "")
     if ($input) {
         $procs = Get-Process -Name $input -EA SilentlyContinue
         if ($procs) {
@@ -717,41 +719,43 @@ $btnKillProc.Add_Click({
 $tabSys.Controls.Add($btnKillProc)
 
 # ============================================================
-#   TAB 5: YOUTUBE DOWNLOADER
+#   TAB 5: YOUTUBE DOWNLOADER - MEJORADO
 # ============================================================
 Make-Section "Descargador de YouTube" 10 8 $tabYT
 
-# Card: URL y Formato
-$cardYT = Make-Card "Configuracion de Descarga" "Requiere yt-dlp y ffmpeg instalados" $tabYT 32 160
+# ===== CARD 1: Configuracion de Descarga =====
+$cardYT = Make-Card "Configuracion de Descarga" "Requiere yt-dlp y ffmpeg instalados" $tabYT 32 185
 
+# URL
 $lblURL = New-Object Windows.Forms.Label
 $lblURL.Text = "URL del video:"
 $lblURL.Location = New-Object Drawing.Point(10, 35)
-$lblURL.Size = New-Object Drawing.Size(100, 20)
+$lblURL.Size = New-Object Drawing.Size(90, 20)
 $lblURL.ForeColor = $C.Text
 $lblURL.Font = New-Object Drawing.Font("Segoe UI", 8.5)
 $cardYT.Controls.Add($lblURL)
 
 $txtURL = New-Object Windows.Forms.TextBox
-$txtURL.Location = New-Object Drawing.Point(115, 33)
-$txtURL.Size = New-Object Drawing.Size(560, 24)
+$txtURL.Location = New-Object Drawing.Point(105, 33)
+$txtURL.Size = New-Object Drawing.Size(570, 24)
 $txtURL.BackColor = $C.Surface
 $txtURL.ForeColor = $C.Text
 $txtURL.BorderStyle = "FixedSingle"
 $txtURL.Font = New-Object Drawing.Font("Segoe UI", 9)
 $cardYT.Controls.Add($txtURL)
 
+# Fila 2: Formato + Destino
 $lblFormat = New-Object Windows.Forms.Label
 $lblFormat.Text = "Formato:"
 $lblFormat.Location = New-Object Drawing.Point(10, 65)
-$lblFormat.Size = New-Object Drawing.Size(100, 20)
+$lblFormat.Size = New-Object Drawing.Size(90, 20)
 $lblFormat.ForeColor = $C.Text
 $lblFormat.Font = New-Object Drawing.Font("Segoe UI", 8.5)
 $cardYT.Controls.Add($lblFormat)
 
 $comboFormat = New-Object Windows.Forms.ComboBox
-$comboFormat.Location = New-Object Drawing.Point(115, 63)
-$comboFormat.Size = New-Object Drawing.Size(200, 24)
+$comboFormat.Location = New-Object Drawing.Point(105, 63)
+$comboFormat.Size = New-Object Drawing.Size(180, 24)
 $comboFormat.BackColor = $C.Surface
 $comboFormat.ForeColor = $C.Text
 $comboFormat.FlatStyle = "Flat"
@@ -768,15 +772,15 @@ $cardYT.Controls.Add($comboFormat)
 
 $lblDest = New-Object Windows.Forms.Label
 $lblDest.Text = "Destino:"
-$lblDest.Location = New-Object Drawing.Point(330, 65)
-$lblDest.Size = New-Object Drawing.Size(60, 20)
+$lblDest.Location = New-Object Drawing.Point(300, 65)
+$lblDest.Size = New-Object Drawing.Size(55, 20)
 $lblDest.ForeColor = $C.Text
 $lblDest.Font = New-Object Drawing.Font("Segoe UI", 8.5)
 $cardYT.Controls.Add($lblDest)
 
 $txtDest = New-Object Windows.Forms.TextBox
-$txtDest.Location = New-Object Drawing.Point(390, 63)
-$txtDest.Size = New-Object Drawing.Size(200, 24)
+$txtDest.Location = New-Object Drawing.Point(355, 63)
+$txtDest.Size = New-Object Drawing.Size(280, 24)
 $txtDest.BackColor = $C.Surface
 $txtDest.ForeColor = $C.Text
 $txtDest.BorderStyle = "FixedSingle"
@@ -784,7 +788,7 @@ $txtDest.Font = New-Object Drawing.Font("Segoe UI", 9)
 $txtDest.Text = "$env:USERPROFILE\Downloads"
 $cardYT.Controls.Add($txtDest)
 
-$btnBrowse = Make-Button "..." 600 63 30 24 $C.Card
+$btnBrowse = Make-Button "..." 645 63 30 24 $C.Card
 $btnBrowse.Font = New-Object Drawing.Font("Segoe UI", 8)
 $btnBrowse.Add_Click({
     $dlg = New-Object Windows.Forms.FolderBrowserDialog
@@ -795,16 +799,17 @@ $btnBrowse.Add_Click({
 })
 $cardYT.Controls.Add($btnBrowse)
 
+# Fila 3: Nombre
 $lblFileName = New-Object Windows.Forms.Label
 $lblFileName.Text = "Nombre:"
 $lblFileName.Location = New-Object Drawing.Point(10, 95)
-$lblFileName.Size = New-Object Drawing.Size(100, 20)
+$lblFileName.Size = New-Object Drawing.Size(90, 20)
 $lblFileName.ForeColor = $C.Text
 $lblFileName.Font = New-Object Drawing.Font("Segoe UI", 8.5)
 $cardYT.Controls.Add($lblFileName)
 
 $txtFileName = New-Object Windows.Forms.TextBox
-$txtFileName.Location = New-Object Drawing.Point(115, 93)
+$txtFileName.Location = New-Object Drawing.Point(105, 93)
 $txtFileName.Size = New-Object Drawing.Size(350, 24)
 $txtFileName.BackColor = $C.Surface
 $txtFileName.ForeColor = $C.Text
@@ -814,16 +819,17 @@ $txtFileName.Text = "%(title)s"
 $cardYT.Controls.Add($txtFileName)
 
 $lblHint = New-Object Windows.Forms.Label
-$lblHint.Text = "%(title)s = titulo original"
-$lblHint.Location = New-Object Drawing.Point(470, 95)
-$lblHint.Size = New-Object Drawing.Size(200, 20)
+$lblHint.Text = "%(title)s = titulo original | %(uploader)s = canal"
+$lblHint.Location = New-Object Drawing.Point(460, 95)
+$lblHint.Size = New-Object Drawing.Size(230, 20)
 $lblHint.ForeColor = $C.SubText
 $lblHint.Font = New-Object Drawing.Font("Segoe UI", 7.5)
 $cardYT.Controls.Add($lblHint)
 
+# Fila 4: Checkboxes
 $chkPlaylist = New-Object Windows.Forms.CheckBox
 $chkPlaylist.Text = "Descargar playlist completa"
-$chkPlaylist.Location = New-Object Drawing.Point(115, 125)
+$chkPlaylist.Location = New-Object Drawing.Point(105, 123)
 $chkPlaylist.Size = New-Object Drawing.Size(220, 22)
 $chkPlaylist.ForeColor = $C.Text
 $chkPlaylist.BackColor = $C.Card
@@ -831,16 +837,25 @@ $chkPlaylist.Font = New-Object Drawing.Font("Segoe UI", 8)
 $cardYT.Controls.Add($chkPlaylist)
 
 $chkSubtitles = New-Object Windows.Forms.CheckBox
-$chkSubtitles.Text = "Incluir subtitulos"
-$chkSubtitles.Location = New-Object Drawing.Point(340, 125)
-$chkSubtitles.Size = New-Object Drawing.Size(150, 22)
+$chkSubtitles.Text = "Incluir subtitulos (es/en)"
+$chkSubtitles.Location = New-Object Drawing.Point(340, 123)
+$chkSubtitles.Size = New-Object Drawing.Size(180, 22)
 $chkSubtitles.ForeColor = $C.Text
 $chkSubtitles.BackColor = $C.Card
 $chkSubtitles.Font = New-Object Drawing.Font("Segoe UI", 8)
 $cardYT.Controls.Add($chkSubtitles)
 
-# Boton Descargar
-$btnDownload = Make-Button "DESCARGAR" 10 200 300 40 $C.Green
+$chkEmbedThumb = New-Object Windows.Forms.CheckBox
+$chkEmbedThumb.Text = "Portada en audio"
+$chkEmbedThumb.Location = New-Object Drawing.Point(530, 123)
+$chkEmbedThumb.Size = New-Object Drawing.Size(140, 22)
+$chkEmbedThumb.ForeColor = $C.Text
+$chkEmbedThumb.BackColor = $C.Card
+$chkEmbedThumb.Font = New-Object Drawing.Font("Segoe UI", 8)
+$cardYT.Controls.Add($chkEmbedThumb)
+
+# ===== BOTONES DE ACCION =====
+$btnDownload = Make-Button "DESCARGAR" 10 222 220 38 $C.Green
 $btnDownload.Font = New-Object Drawing.Font("Segoe UI", 11, [Drawing.FontStyle]::Bold)
 $btnDownload.Add_Click({
     $url = $txtURL.Text.Trim()
@@ -906,18 +921,31 @@ $btnDownload.Add_Click({
     if ($chkSubtitles.Checked) {
         $ydlArgs += "--write-subs"
         $ydlArgs += "--sub-langs es,en"
+        $ydlArgs += "--convert-subs srt"
+    }
+
+    if ($chkEmbedThumb.Checked) {
+        $ydlArgs += "--embed-thumbnail"
     }
 
     $ydlArgs += "--no-warnings"
     $ydlArgs += "--progress"
-
-    $cmd = "yt-dlp $([string]::Join(' ', $ydlArgs)) `"$url`""
+    $ydlArgs += "--newline"
 
     Log "--- Descarga YouTube ---" "TITLE"
     Log "URL: $url" "INFO"
     Log "Formato: $formato" "INFO"
     Log "Destino: $dest" "INFO"
-    Log "Ejecutando yt-dlp..." "INFO"
+    Log "Iniciando descarga..." "INFO"
+
+    # Actualizar estado visual
+    $lblStatus.Text = "Descargando..."
+    $lblStatus.ForeColor = $C.Yellow
+    $progressBar.Value = 0
+    $progressBar.Visible = $true
+    $btnDownload.Enabled = $false
+    $btnDownload.Text = "DESCARGANDO..."
+    $form.Refresh()
 
     try {
         $psi = New-Object System.Diagnostics.ProcessStartInfo
@@ -929,11 +957,24 @@ $btnDownload.Add_Click({
         $psi.CreateNoWindow = $true
 
         $proc = [System.Diagnostics.Process]::Start($psi)
+        $lastPercent = 0
 
         # Leer salida en tiempo real
         while (-not $proc.StandardOutput.EndOfStream) {
             $line = $proc.StandardOutput.ReadLine()
-            if ($line -match "\[download\]") {
+
+            # Extraer porcentaje del progreso
+            if ($line -match "\[download\]\s+(\d+\.\d+)%") {
+                $pct = [int]$matches[1]
+                if ($pct -ne $lastPercent) {
+                    $progressBar.Value = $pct
+                    $lastPercent = $pct
+                    $lblStatus.Text = "Progreso: $pct%"
+                    $form.Refresh()
+                }
+            }
+
+            if ($line -match "\[download\]\s+Destination:" -or $line -match "\[ExtractAudio\]" -or $line -match "\[Merger\]") {
                 Log $line "INFO"
             }
         }
@@ -942,44 +983,76 @@ $btnDownload.Add_Click({
 
         if ($proc.ExitCode -eq 0) {
             Log "Descarga completada exitosamente." "OK"
+            $lblStatus.Text = "Completado"
+            $lblStatus.ForeColor = $C.Green
+
+            # Agregar al historial
+            $entry = "$(Get-Date -Format 'HH:mm') | $formato | $([System.IO.Path]::GetFileName($url))"
+            [void]$script:DownloadHistory.Add($entry)
+            $lstHistory.Items.Add($entry)
+
+            # Limpiar URL
+            $txtURL.Clear()
         } else {
             $err = $proc.StandardError.ReadToEnd()
             if ($err) { Log $err "ERR" }
+            $lblStatus.Text = "Error"
+            $lblStatus.ForeColor = $C.Red
         }
     } catch {
         if ($_ -match "no se reconoce como un comando") {
-            Log "yt-dlp no esta instalado. Instalalo con: pip install yt-dlp" "ERR"
+            Log "yt-dlp no esta instalado." "ERR"
+            Log "Instalalo con: pip install yt-dlp" "INFO"
             Log "O descargalo desde: https://github.com/yt-dlp/yt-dlp/releases" "INFO"
         } else {
             Log "Error: $_" "ERR"
         }
+        $lblStatus.Text = "Error"
+        $lblStatus.ForeColor = $C.Red
+    } finally {
+        $btnDownload.Enabled = $true
+        $btnDownload.Text = "DESCARGAR"
+        $progressBar.Value = 0
+        $form.Refresh()
     }
 })
 $tabYT.Controls.Add($btnDownload)
 
-# Boton Info
-$btnYTInfo = Make-Button "Ver Info del Video" 320 200 200 40 $C.Card
+$btnYTInfo = Make-Button "Ver Info del Video" 240 222 180 38 $C.Card
+$btnYTInfo.Font = New-Object Drawing.Font("Segoe UI", 9)
 $btnYTInfo.Add_Click({
     $url = $txtURL.Text.Trim()
     if (-not $url) { Log "Ingresa una URL primero." "WARN"; return }
 
     Log "--- Informacion del video ---" "TITLE"
     try {
-        $info = yt-dlp --dump-json --no-warnings $url 2>$null | ConvertFrom-Json
-        Log "Titulo: $($info.title)" "INFO"
-        Log "Canal: $($info.uploader)" "INFO"
-        Log "Duracion: $([math]::Floor($info.duration / 60))m $($info.duration % 60)s" "INFO"
-        Log "Vistas: $($info.view_count)" "INFO"
-        Log "Mejor calidad video: $($info.format | Where-Object { $_.vcodec -ne 'none' } | Select-Object -First 1 -ExpandProperty format)" "INFO"
-        Log "Mejor calidad audio: $($info.format | Where-Object { $_.acodec -ne 'none' -and $_.vcodec -eq 'none' } | Select-Object -First 1 -ExpandProperty format)" "INFO"
+        $json = yt-dlp --dump-json --no-warnings $url 2>$null
+        if ($json) {
+            $info = $json | ConvertFrom-Json
+            Log "Titulo: $($info.title)" "INFO"
+            Log "Canal: $($info.uploader)" "INFO"
+            Log "Duracion: $([math]::Floor($info.duration / 60))m $($info.duration % 60)s" "INFO"
+            Log "Vistas: $($info.view_count)" "INFO"
+            Log "Likes: $($info.like_count)" "INFO"
+
+            $bestVideo = $info.formats | Where-Object { $_.vcodec -ne 'none' -and $_.acodec -eq 'none' } | Sort-Object { [int]$_.height } -Descending | Select-Object -First 1
+            $bestAudio = $info.formats | Where-Object { $_.acodec -ne 'none' -and $_.vcodec -eq 'none' } | Sort-Object { [int]$_.abr } -Descending | Select-Object -First 1
+
+            if ($bestVideo) {
+                Log "Mejor video: $($bestVideo.height)p | $($bestVideo.vcodec) | $($bestVideo.ext)" "INFO"
+            }
+            if ($bestAudio) {
+                Log "Mejor audio: $($bestAudio.abr)kbps | $($bestAudio.acodec) | $($bestAudio.ext)" "INFO"
+            }
+        }
     } catch {
         Log "Error obteniendo info. Verifica la URL y que yt-dlp este instalado." "ERR"
     }
 })
 $tabYT.Controls.Add($btnYTInfo)
 
-# Boton Abrir carpeta
-$btnOpenFolder = Make-Button "Abrir Carpeta" 530 200 150 40 $C.Card
+$btnOpenFolder = Make-Button "Abrir Carpeta" 430 222 130 38 $C.Card
+$btnOpenFolder.Font = New-Object Drawing.Font("Segoe UI", 9)
 $btnOpenFolder.Add_Click({
     $dest = $txtDest.Text.Trim()
     if (Test-Path $dest) {
@@ -990,25 +1063,104 @@ $btnOpenFolder.Add_Click({
 })
 $tabYT.Controls.Add($btnOpenFolder)
 
-# Card: Requisitos
-$cardReq = Make-Card "Requisitos" $null $tabYT 250 100
-$cardReq.Size = New-Object Drawing.Size(690, 100)
+$btnClearURL = Make-Button "Limpiar" 570 222 100 38 $C.Card
+$btnClearURL.Font = New-Object Drawing.Font("Segoe UI", 9)
+$btnClearURL.Add_Click({
+    $txtURL.Clear()
+    $txtFileName.Text = "%(title)s"
+    $lblStatus.Text = "Listo"
+    $lblStatus.ForeColor = $C.SubText
+    $progressBar.Value = 0
+})
+$tabYT.Controls.Add($btnClearURL)
+
+# ===== BARRA DE PROGRESO =====
+$progressBar = New-Object Windows.Forms.ProgressBar
+$progressBar.Location = New-Object Drawing.Point(10, 268)
+$progressBar.Size = New-Object Drawing.Size(660, 18)
+$progressBar.Style = "Continuous"
+$progressBar.BackColor = $C.DarkCard
+$progressBar.ForeColor = $C.Green
+$progressBar.Visible = $false
+$tabYT.Controls.Add($progressBar)
+
+$lblStatus = New-Object Windows.Forms.Label
+$lblStatus.Text = "Listo"
+$lblStatus.Location = New-Object Drawing.Point(10, 290)
+$lblStatus.Size = New-Object Drawing.Size(660, 20)
+$lblStatus.ForeColor = $C.SubText
+$lblStatus.Font = New-Object Drawing.Font("Segoe UI", 8.5, [Drawing.FontStyle]::Bold)
+$tabYT.Controls.Add($lblStatus)
+
+# ===== CARD 2: Requisitos =====
+$cardReq = Make-Card "Requisitos" $null $tabYT 318 80
+$cardReq.Size = New-Object Drawing.Size(690, 80)
 
 $lblReq = New-Object Windows.Forms.Label
-$lblReq.Text = "Requisitos:`n`n1. Python instalado (python.org)`n2. yt-dlp:  pip install yt-dlp`n3. FFmpeg:  winget install Gyan.FFmpeg  (o desde ffmpeg.org)"
+$lblReq.Text = "1. Python (python.org)  |  2. yt-dlp: pip install yt-dlp  |  3. FFmpeg: winget install Gyan.FFmpeg"
 $lblReq.Location = New-Object Drawing.Point(10, 30)
-$lblReq.Size = New-Object Drawing.Size(670, 60)
+$lblReq.Size = New-Object Drawing.Size(670, 20)
 $lblReq.ForeColor = $C.SubText
 $lblReq.Font = New-Object Drawing.Font("Consolas", 8.5)
 $cardReq.Controls.Add($lblReq)
 
+$lblReq2 = New-Object Windows.Forms.Label
+$lblReq2.Text = "Descarga manual:  github.com/yt-dlp/yt-dlp/releases  |  ffmpeg.org/download.html"
+$lblReq2.Location = New-Object Drawing.Point(10, 50)
+$lblReq2.Size = New-Object Drawing.Size(670, 20)
+$lblReq2.ForeColor = $C.SubText
+$lblReq2.Font = New-Object Drawing.Font("Consolas", 8)
+$cardReq.Controls.Add($lblReq2)
 
+# ===== CARD 3: Historial de Descargas =====
+$cardHistory = Make-Card "Historial de Descargas" $null $tabYT 408 140
+$cardHistory.Size = New-Object Drawing.Size(690, 140)
+
+$lstHistory = New-Object Windows.Forms.ListBox
+$lstHistory.Location = New-Object Drawing.Point(10, 30)
+$lstHistory.Size = New-Object Drawing.Size(550, 100)
+$lstHistory.BackColor = $C.Output
+$lstHistory.ForeColor = $C.Accent2
+$lstHistory.Font = New-Object Drawing.Font("Consolas", 8.5)
+$lstHistory.BorderStyle = "FixedSingle"
+$cardHistory.Controls.Add($lstHistory)
+
+$btnClearHistory = Make-Button "Limpiar Historial" 570 30 110 26 $C.Card
+$btnClearHistory.Font = New-Object Drawing.Font("Segoe UI", 7.5)
+$btnClearHistory.Add_Click({
+    $lstHistory.Items.Clear()
+    $script:DownloadHistory.Clear()
+    Log "Historial limpiado." "INFO"
+})
+$cardHistory.Controls.Add($btnClearHistory)
+
+$btnOpenFile = Make-Button "Abrir Archivo" 570 62 110 26 $C.Card
+$btnOpenFile.Font = New-Object Drawing.Font("Segoe UI", 7.5)
+$btnOpenFile.Add_Click({
+    if ($lstHistory.SelectedIndex -ge 0) {
+        $dest = $txtDest.Text.Trim()
+        if (Test-Path $dest) {
+            Start-Process explorer $dest
+        }
+    }
+})
+$cardHistory.Controls.Add($btnOpenFile)
+
+$btnCopyURL = Make-Button "Copiar URL" 570 94 110 26 $C.Card
+$btnCopyURL.Font = New-Object Drawing.Font("Segoe UI", 7.5)
+$btnCopyURL.Add_Click({
+    if ($txtURL.Text) {
+        [System.Windows.Forms.Clipboard]::SetText($txtURL.Text)
+        Log "URL copiada al portapapeles." "OK"
+    }
+})
+$cardHistory.Controls.Add($btnCopyURL)
 
 # ============================================================
 #   FOOTER
 # ============================================================
 $footer = New-Object Windows.Forms.Label
-$footer.Text = "Syscodi7 System Toolkit v1.1  |  PowerShell + WinForms  |  Ejecutar como Administrador"
+$footer.Text = "NovaTech System Toolkit v1.2  |  PowerShell + WinForms  |  Ejecutar como Administrador"
 $footer.Location = New-Object Drawing.Point(0, 622)
 $footer.Size = New-Object Drawing.Size(1150, 20)
 $footer.TextAlign = "MiddleCenter"
